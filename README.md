@@ -107,6 +107,6 @@ sequenceDiagram
 - Language: Java 17
 - Framework: Spring Boot, Spring WebSocket
 - Message Broker: RabbitMQ
-= Cache: Redis
-= Load Balancer: Nginx / Spring Cloud Gateway
+-  Cache: Redis
+   Load Balancer: Nginx / Spring Cloud Gateway
 - Protocol: WebSocket (with SockJS fallback)
