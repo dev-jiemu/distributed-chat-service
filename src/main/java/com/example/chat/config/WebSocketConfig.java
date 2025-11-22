@@ -1,6 +1,7 @@
-package com.chat.config;
+package com.example.chat.config;
 
-import com.chat.handler.ChatWebSocketHandler;
+import com.example.chat.handler.ChatWebSocketHandler;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
@@ -9,11 +10,14 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 @Configuration
 @EnableWebSocket
 public class WebSocketConfig implements WebSocketConfigurer {
-
+    
+    @Autowired
+    private ChatWebSocketHandler chatWebSocketHandler;
+    
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-        registry.addHandler(new ChatWebSocketHandler(), "/chat")
+        registry.addHandler(chatWebSocketHandler, "/chat")
                 .setAllowedOrigins("*")
-                .withSockJS();
+                .withSockJS();  // SockJS fallback 지원
     }
 }
