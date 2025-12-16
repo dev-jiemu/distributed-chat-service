@@ -30,7 +30,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         sessionManager.registerSession(userId, session);
         
         // 접속 알림 메시지 발송
-        ChatMessage joinMessage = new ChatMessage(userId, userId + " joined", ChatMessage.MessageType.JOIN);
+        ChatMessage joinMessage = ChatMessage.createJoinMessage(userId);
         messagePublisher.publishMessage(joinMessage);
     }
     
@@ -61,7 +61,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         sessionManager.removeSession(userId);
         
         // 종료 알림 메시지 발송
-        ChatMessage leaveMessage = new ChatMessage(userId, userId + " left", ChatMessage.MessageType.LEAVE);
+        ChatMessage leaveMessage = ChatMessage.createLeaveMessage(userId);
         messagePublisher.publishMessage(leaveMessage);
     }
     

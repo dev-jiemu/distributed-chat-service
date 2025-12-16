@@ -1,26 +1,31 @@
 package com.example.chat.model;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.LocalDateTime;
 
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class ChatMessage {
-    
     private String id;
-    private String senderId;
-    private String receiverId;
-    private String roomId;  // 그룹 채팅용
+    private String sender;
+    private String receiver;
     private String content;
     private MessageType type;
+    private String roomId;
     private LocalDateTime timestamp;
-    
+
+    // 추가 필드들
+    private String senderId;  // sender와 동일, 호환성을 위해 유지
+    private String receiverId; // receiver와 동일, 호환성을 위해 유지
+    private MessageStatus status;
+    private String attachmentUrl;
+
     public enum MessageType {
         CHAT,
         JOIN,
@@ -28,11 +33,31 @@ public class ChatMessage {
         TYPING,
         READ
     }
+
+    public enum MessageStatus {
+        SENT,
+        DELIVERED,
+        READ
+    }
+
+    // 간단한 메시지 생성을 위한 정적 팩토리 메서드
+    public static ChatMessage createJoinMessage(String userId) {
+        return ChatMessage.builder()
+                .sender(userId)
+                .senderId(userId)
+                .content(userId + " joined")
+                .type(MessageType.JOIN)
+                .timestamp(LocalDateTime.now())
+                .build();
+    }
     
-    public ChatMessage(String senderId, String content, MessageType type) {
-        this.senderId = senderId;
-        this.content = content;
-        this.type = type;
-        this.timestamp = LocalDateTime.now();
+    public static ChatMessage createLeaveMessage(String userId) {
+        return ChatMessage.builder()
+                .sender(userId)
+                .senderId(userId)
+                .content(userId + " left")
+                .type(MessageType.LEAVE)
+                .timestamp(LocalDateTime.now())
+                .build();
     }
 }

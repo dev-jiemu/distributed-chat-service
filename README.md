@@ -110,3 +110,18 @@ sequenceDiagram
 -  Cache: Redis
    Load Balancer: Nginx / Spring Cloud Gateway
 - Protocol: WebSocket (with SockJS fallback)
+
+
+
+---
+
+### Memo
+Next
+- JWT 기반 인증 추가
+- 파일 업로드 지원
+- 읽음 확인 기능
+- 타이핑 표시 기능
+- 푸시 알림
+- 메시지 암호화
+- 데이터베이스 연동
+- Kubernetes / Helm chart 배포 설정

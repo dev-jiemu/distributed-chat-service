@@ -32,7 +32,7 @@ public class MessagePublisher {
             publishDirectMessage(message);
         } 
         // 브로드캐스트 메시지인 경우 (JOIN, LEAVE 등)
-        else if (message.getType() == ChatMessage.MessageType.JOIN || 
+        else if (message.getType() == ChatMessage.MessageType.JOIN ||
                  message.getType() == ChatMessage.MessageType.LEAVE) {
             publishBroadcastMessage(message);
         }

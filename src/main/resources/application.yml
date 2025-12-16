@@ -1,31 +1,44 @@
+# Server Configuration
 server:
   port: 8080
-  
-spring:
-  application:
-    name: distributed-chat-service
-    
-  # RabbitMQ 설정
-  rabbitmq:
-    host: ${SPRING_RABBITMQ_HOST:localhost}
-    port: 5672
-    username: ${RABBITMQ_USERNAME:admin}
-    password: ${RABBITMQ_PASSWORD:admin}
-    
-  # Redis 설정
-  data:
-    redis:
-      host: ${SPRING_REDIS_HOST:localhost}
-      port: 6379
-      password: ${REDIS_PASSWORD:}
-      
-# 서버 ID (환경변수로 설정)
+
+# Custom Application Properties
 app:
   server-id: ${SERVER_ID:server1}
+
+# Spring Configuration
+spring:
+  # Redis Configuration
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          time-between-eviction-runs: 30s
   
-# 로깅 설정
+  # RabbitMQ Configuration
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: admin
+    virtual-host: /
+    
+  # Jackson Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: true
+
+# Logging Configuration
 logging:
   level:
     com.example.chat: DEBUG
-    org.springframework.web.socket: DEBUG
-    org.springframework.amqp: DEBUG
+    org.springframework.messaging: INFO
+    org.springframework.web.socket: INFO
+    org.springframework.amqp: INFO

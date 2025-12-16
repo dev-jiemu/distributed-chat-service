@@ -23,7 +23,7 @@ public class MessageConsumer {
             // 메시지 타입에 따라 처리
             switch (message.getType()) {
                 case CHAT:
-                    handleChatMessage(message);
+                    handleChatMessageDto(message);
                     break;
                 case JOIN:
                 case LEAVE:
@@ -42,7 +42,7 @@ public class MessageConsumer {
         }
     }
     
-    private void handleChatMessage(ChatMessage message) throws Exception {
+    private void handleChatMessageDto(ChatMessage message) throws Exception {
         String messageJson = objectMapper.writeValueAsString(message);
         
         // 1:1 메시지인 경우

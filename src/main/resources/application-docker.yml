@@ -1,0 +1,7 @@
+# Docker Environment Configuration
+spring:
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:redis}
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
