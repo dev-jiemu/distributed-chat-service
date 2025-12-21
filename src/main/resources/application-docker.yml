@@ -3,5 +3,9 @@ spring:
   data:
     redis:
       host: ${SPRING_REDIS_HOST:redis}
+      password: test
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:rabbitmq}
+    username: admin
+    password: admin
+    connection-timeout: 60000

@@ -14,17 +14,27 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - chat_network
+    healthcheck: # rabbitmq 뜨기 전에 먼저 뜨면 연결에러 뜨니까 healthcheck 추가해봄
+      test: rabbitmq-diagnostics -q ping
+      interval: 5s
+      timeout: 30s
+      retries: 3
 
   redis:
     image: redis:7-alpine
     container_name: chat_redis
     ports:
       - "6379:6379"
-    command: redis-server --appendonly yes
+    command: redis-server --appendonly yes --requirepass test
     volumes:
       - redis_data:/data
     networks:
       - chat_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 30s
+      retries: 3
 
   # 개발용 단일 인스턴스
   # 실제 운영에서는 여러 개의 chat-server를 실행
@@ -39,8 +49,10 @@ services:
       SPRING_REDIS_HOST: redis
       SPRING_PROFILES_ACTIVE: docker
     depends_on:
-      - rabbitmq
-      - redis
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - chat_network
 
