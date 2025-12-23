@@ -36,13 +36,25 @@ public class ConnectionService {
 
     public UserConnection getUserConnection(String userId) {
         String key = CONNECTION_KEY_PREFIX + userId;
-        Object value = redisTemplate.opsForValue().get(key);
-
-        // java.lang.ClassCastException
-        // return (UserConnection) redisTemplate.opsForValue().get(key);
-        return value == null
-                ? null
-                : objectMapper.convertValue(value, UserConnection.class);
+        try {
+            Object value = redisTemplate.opsForValue().get(key);
+            log.debug("Retrieved value type from Redis: {}", value != null ? value.getClass().getName() : "null");
+            
+            if (value == null) {
+                return null;
+            }
+            
+            // 이미 UserConnection 타입인 경우
+            if (value instanceof UserConnection) {
+                return (UserConnection) value;
+            }
+            
+            // LinkedHashMap인 경우 ObjectMapper로 변환
+            return objectMapper.convertValue(value, UserConnection.class);
+        } catch (Exception e) {
+            log.error("Error retrieving user connection for userId: {}", userId, e);
+            return null;
+        }
     }
     
     public void removeUserConnection(String userId) {

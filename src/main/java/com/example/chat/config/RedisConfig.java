@@ -26,6 +26,7 @@ public class RedisConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
 
+        // GenericJackson2JsonRedisSerializer는 타입 정보를 자동으로 포함
         GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(objectMapper);
         
         // Key는 String으로, Value는 JSON으로 직렬화
