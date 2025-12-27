@@ -125,3 +125,9 @@ Next
 - 메시지 암호화
 - 데이터베이스 연동
 - Kubernetes / Helm chart 배포 설정
+
+---
+
+### Issue
+- 서버, 클라이언트 간의 프로토콜 미일치 (STOMP / WebSocket)
+- 발신자 에코백 없음

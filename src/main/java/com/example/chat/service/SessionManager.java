@@ -80,6 +80,19 @@ public class SessionManager {
         }
     }
     
+    public void broadcastToLocalUsers(String message) {
+        localSessions.forEach((userId, session) -> {
+            if (session != null && session.isOpen()) {
+                try {
+                    session.sendMessage(new TextMessage(message));
+                    log.debug("Broadcast message sent to user: {}", userId);
+                } catch (IOException e) {
+                    log.error("Failed to broadcast message to user: {}", userId, e);
+                }
+            }
+        });
+    }
+    
     public int getLocalSessionCount() {
         return localSessions.size();
     }

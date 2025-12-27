@@ -73,3 +73,9 @@ server {
     }
 }
 ```
+코드 수정사항 다시 반영하고 싶을때 up 하면 안됨... 빌드 다시해주기 ㅠㅠ
+```shell
+docker-compose down
+docker-compose build chat-server
+docker-compose up
+```

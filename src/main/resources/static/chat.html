@@ -59,6 +59,9 @@
     
     <div>
         Send To: <input type="text" id="receiverId" placeholder="Receiver ID (leave empty for broadcast)">
+        OR Room: <input type="text" id="roomId" placeholder="Room ID">
+        <button onclick="joinRoom()" id="join-room-button" disabled>Join Room</button>
+        <button onclick="leaveRoom()" id="leave-room-button" disabled>Leave Room</button>
     </div>
     
     <div id="chat-container"></div>
@@ -69,40 +72,46 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.5.2/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
     <script>
         let stompClient = null;
         let socket = null;
         let connected = false;
         let currentUserId = null;
-        
+        let currentRoomId = null;
+
         function connect() {
             currentUserId = document.getElementById('userId').value;
             if (!currentUserId) {
                 alert('Please enter a User ID');
                 return;
             }
-            
+
             // SockJS 연결
             socket = new SockJS('/chat?userId=' + currentUserId);
-            
+
             socket.onopen = function() {
                 connected = true;
                 updateStatus('Connected');
                 document.getElementById('message-input').disabled = false;
                 document.getElementById('send-button').disabled = false;
+                document.getElementById('join-room-button').disabled = false;
+                document.getElementById('leave-room-button').disabled = false;
                 addSystemMessage('Connected to server');
             };
-            
+
             socket.onmessage = function(event) {
                 const message = JSON.parse(event.data);
                 handleIncomingMessage(message);
             };
-            
+
             socket.onclose = function() {
                 connected = false;
                 updateStatus('Disconnected');
                 document.getElementById('message-input').disabled = true;
                 document.getElementById('send-button').disabled = true;
+                document.getElementById('join-room-button').disabled = true;
+                document.getElementById('leave-room-button').disabled = true;
                 addSystemMessage('Disconnected from server');
             };
             
@@ -121,28 +130,33 @@
         function sendMessage() {
             const messageInput = document.getElementById('message-input');
             const receiverId = document.getElementById('receiverId').value;
+            const roomId = document.getElementById('roomId').value;
             const content = messageInput.value.trim();
-            
+
             if (!content) return;
-            
+
             const message = {
                 content: content,
                 type: 'CHAT',
                 receiverId: receiverId || null,
+                roomId: roomId || null,
                 timestamp: new Date().toISOString()
             };
             
             socket.send(JSON.stringify(message));
             
-            // 자신의 메시지 표시
-            addMessage('You', content, true);
+            // 자신의 메시지는 서버에서 에코백으로 받아서 표시하므로 여기서는 표시하지 않음
+            // addMessage('You', content, true);
             messageInput.value = '';
         }
-        
+
         function handleIncomingMessage(message) {
             switch (message.type) {
                 case 'CHAT':
-                    addMessage(message.senderId, message.content, false);
+                    // 자신이 보낸 메시지인지 확인
+                    const isOwn = message.senderId === currentUserId;
+                    const displayName = isOwn ? 'You' : message.senderId;
+                    addMessage(displayName, message.content, isOwn);
                     break;
                 case 'JOIN':
                     addSystemMessage(message.content);
@@ -160,7 +174,11 @@
             const chatContainer = document.getElementById('chat-container');
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message' + (isOwn ? ' own' : '');
-            messageDiv.textContent = sender + ': ' + content;
+
+            // 룸 메시지인 경우 룸 표시
+            const roomPrefix = currentRoomId ? `[Room: ${currentRoomId}] ` : '';
+            messageDiv.textContent = roomPrefix + sender + ': ' + content;
+
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
@@ -184,6 +202,59 @@
                 sendMessage();
             }
         });
+
+        // 룸 관련 함수들
+        function joinRoom() {
+            const roomId = document.getElementById('roomId').value;
+            if (!roomId) {
+                alert('Please enter a Room ID');
+                return;
+            }
+
+            // REST API로 룸 참가 요청
+            fetch(`/api/chat/rooms/${roomId}/join`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ userId: currentUserId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                currentRoomId = roomId;
+                addSystemMessage(`Joined room: ${roomId} (${data.members.length} members)`);
+            })
+            .catch(error => {
+                console.error('Error joining room:', error);
+                addSystemMessage('Failed to join room');
+            });
+        }
+
+        function leaveRoom() {
+            const roomId = document.getElementById('roomId').value;
+            if (!roomId) {
+                return;
+            }
+
+            // REST API로 룸 나가기 요청
+            fetch(`/api/chat/rooms/${roomId}/leave`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ userId: currentUserId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                currentRoomId = null;
+                addSystemMessage(`Left room: ${roomId}`);
+                document.getElementById('roomId').value = '';
+            })
+            .catch(error => {
+                console.error('Error leaving room:', error);
+                addSystemMessage('Failed to leave room');
+            });
+        }
     </script>
 </body>
 </html>

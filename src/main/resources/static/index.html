@@ -107,8 +107,8 @@
         }
         
         function onConnected() {
-            // Subscribe to personal message queue
-            stompClient.subscribe('/queue/messages/' + username, onMessageReceived);
+            // Subscribe to personal message queue with /user prefix
+            stompClient.subscribe('/user/queue/messages', onMessageReceived);
             
             // Send join message
             stompClient.send("/app/chat.addUser", {}, JSON.stringify({
