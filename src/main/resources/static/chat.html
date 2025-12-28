@@ -200,7 +200,7 @@
             };
             
             // STOMP로 메시지 전송
-            stompClient.send('/app/chat.send', {}, JSON.stringify(chatMessage));
+            stompClient.send('/app/chat.sendMessage', {}, JSON.stringify(chatMessage));
             
             messageInput.value = '';
             clearTypingIndicator();

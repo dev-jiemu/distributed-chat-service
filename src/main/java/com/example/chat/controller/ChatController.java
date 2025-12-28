@@ -25,8 +25,8 @@ public class ChatController {
     private final MessageRoutingService messageRoutingService;
     private final ConnectionService connectionService;
     private final SimpMessagingTemplate messagingTemplate;
-    
-    @Value("${app.server-id:server1}")
+
+    @Value("${HOSTNAME:server-default}")
     private String serverId;
     
     /**
@@ -60,14 +60,6 @@ public class ChatController {
     }
     
     /**
-     * 새로운 엔드포인트로 변경하여 호환성 유지
-     */
-    @MessageMapping("/chat.send")
-    public void send(@Payload ChatMessage chatMessage, Principal principal, SimpMessageHeaderAccessor headerAccessor) {
-        sendMessage(chatMessage, principal, headerAccessor);
-    }
-    
-    /**
      * 사용자 접속 처리
      */
     @MessageMapping("/chat.addUser")
@@ -94,7 +86,7 @@ public class ChatController {
         log.info("User {} joined with session {} on server {}", userId, sessionId, serverId);
         
         // 접속 메시지 생성 (옵션)
-        ChatMessage joinMessage = ChatMessage.createJoinMessage(userId);
+        // ChatMessage joinMessage = ChatMessage.createJoinMessage(userId);
         // TODO: 필요시 친구나 룸 멤버들에게 접속 알림 전송
     }
     
