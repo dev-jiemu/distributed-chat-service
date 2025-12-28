@@ -38,8 +38,12 @@ public class MessageRoutingService {
      * 로컬 사용자에게 메시지 전달
      */
     public void deliverMessageToLocalUser(ChatMessage message) {
-        String destination = "/queue/messages/" + message.getReceiver();
-        messagingTemplate.convertAndSend(destination, message);
+        // 개인 메시지 큐로 전달
+        messagingTemplate.convertAndSendToUser(
+            message.getReceiver(), 
+            "/queue/messages", 
+            message
+        );
         log.info("Message delivered to local user {}", message.getReceiver());
     }
 }

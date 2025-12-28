@@ -79,3 +79,8 @@ docker-compose down
 docker-compose build chat-server
 docker-compose up
 ```
+
+
+2. STOMP Protocol
+
+Ref. https://velog.io/@hoyun7443/WebSocket%EC%9D%98-Stomp
