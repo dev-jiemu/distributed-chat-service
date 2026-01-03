@@ -8,6 +8,22 @@ app:
 
 # Spring Configuration
 spring:
+  # SQLite Configuration
+  datasource:
+    url: jdbc:sqlite:./chat-service.db
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1  # SQLite는 동시 쓰기가 제한적
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.community.dialect.SQLiteDialect
+    show-sql: true
+
   # Redis Configuration
   data:
     redis:

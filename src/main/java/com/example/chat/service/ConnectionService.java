@@ -1,6 +1,8 @@
 package com.example.chat.service;
 
+import com.example.chat.entity.User;
 import com.example.chat.model.UserConnection;
+import com.example.chat.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,17 +10,18 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-
-// TODO : userId 가 not unique 인지 확인해야 할것 같은데
 public class ConnectionService {
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
+    private final UserRepository userRepository;
 
     @Value("${server.id:server1}")
     private String serverId;
@@ -27,12 +30,25 @@ public class ConnectionService {
     private static final long CONNECTION_TTL = 30; // 30분
     
     public void saveUserConnection(String userId, String sessionId) {
+        // DB에서 사용자 확인
+        Optional<User> userOpt  = userRepository.findByUserId(userId);
+        if (userOpt .isEmpty()) {
+            log.error("user not found in db: {}", userId);
+            return;
+        }
+
+        User user = userOpt.get();
         UserConnection connection = new UserConnection(userId, sessionId, serverId, System.currentTimeMillis());
         String key = CONNECTION_KEY_PREFIX + userId;
-        
         redisTemplate.opsForValue().set(key, connection, CONNECTION_TTL, TimeUnit.MINUTES);
+
+        // 사용자 활성 시간 업데이트
+        user.setLastActiveAt(LocalDateTime.now());
+        userRepository.save(user);
+
         log.info("User {} connected to server {} with session {}", userId, serverId, sessionId);
     }
+
 
     public UserConnection getUserConnection(String userId) {
         String key = CONNECTION_KEY_PREFIX + userId;
