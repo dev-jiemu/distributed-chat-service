@@ -4,17 +4,20 @@ import com.example.chat.entity.User;
 import com.example.chat.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @SpringBootTest
-@RequiredArgsConstructor
+@ActiveProfiles("test")
 public class SQLiteTest {
 
-    private final UserRepository userRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     @Test
     public void generateTestUsers() {

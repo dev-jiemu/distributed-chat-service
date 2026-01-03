@@ -1,0 +1,85 @@
+# Test Configuration
+spring:
+  application:
+    name: chat-load-test
+
+  # Test Database Configuration
+  datasource:
+    url: jdbc:sqlite:./test-chat-service.db  # ??? ?? DB ??
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+
+  # JPA Configuration for Test
+  jpa:
+    hibernate:
+      # ddl-auto: create-drop  # ??? ??, ??? ?? ???
+      ddl-auto: update
+    properties:
+      hibernate:
+        dialect: org.hibernate.community.dialect.SQLiteDialect
+    show-sql: true
+
+  # Redis Configuration for Test
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+  # RabbitMQ Configuration for Test
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: admin
+    virtual-host: /
+
+  # Jackson Configuration
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: true
+
+# WebSocket Configuration
+websocket:
+  url: ws://localhost:8080/ws
+  timeout: 5000
+
+# Load Test Configuration
+loadtest:
+  users: 100
+  rampup:
+    seconds: 30
+  duration:
+    seconds: 300
+  messages:
+    per:
+      user: 50
+
+# Logging Configuration
+logging:
+  level:
+    com.example.chat: DEBUG
+    com.example.chat.loadtest: DEBUG
+    org.java_websocket: INFO
+    org.springframework.messaging: INFO
+    org.springframework.web.socket: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# Metrics Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  metrics:
+    export:
+      simple:
+        enabled: true
