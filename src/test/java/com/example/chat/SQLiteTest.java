@@ -2,7 +2,6 @@ package com.example.chat;
 
 import com.example.chat.entity.User;
 import com.example.chat.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
