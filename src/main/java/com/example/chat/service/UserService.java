@@ -159,4 +159,21 @@ public class UserService {
         return finalNickname;
     }
 
+    public User registerUser(String email, String password) {
+        if (userRepository.findByEmail(email).isPresent()) { // 이미 있으면 null return
+            return null;
+        }
+
+        User newUser = new User();
+        newUser.setEmail(email);
+        // TODO : 암호화 적용하기 - 일단 개발이니까 안하고 넘어감
+        // newUser.setPasswordHash(passwordEncoder.encode(password));
+        newUser.setPasswordHash(password);
+        newUser.setUserType(com.example.chat.entity.UserType.AUTHENTICATED);
+        newUser.setNickname(generateUniqueNickname(email.split("@")[0]));
+        newUser.setCreatedAt(LocalDateTime.now());
+        newUser.setLastLoginAt(LocalDateTime.now());
+
+        return userRepository.save(newUser);
+    }
 }
