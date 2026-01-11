@@ -2,21 +2,27 @@ package com.example.chat.service;
 
 import com.example.chat.config.RabbitMQConfig;
 import com.example.chat.model.ChatMessage;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class MessageRoutingService {
+    
+    private static final Logger log = LoggerFactory.getLogger(MessageRoutingService.class);
     
     private final RabbitTemplate rabbitTemplate;
     private final SimpMessagingTemplate messagingTemplate;
     private final ConnectionService connectionService;
-    
+
+    public MessageRoutingService(RabbitTemplate rabbitTemplate, SimpMessagingTemplate messagingTemplate, ConnectionService connectionService) {
+        this.rabbitTemplate = rabbitTemplate;
+        this.messagingTemplate = messagingTemplate;
+        this.connectionService = connectionService;
+    }
+
     /**
      * 메시지를 적절한 서버로 라우팅
      */

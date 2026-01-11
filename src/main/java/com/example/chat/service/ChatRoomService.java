@@ -1,21 +1,26 @@
 package com.example.chat.service;
 
 import com.example.chat.model.ChatMessage;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Set;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class ChatRoomService {
+
+    private static final Logger log = LoggerFactory.getLogger(ChatRoomService.class);
     
     private final RedisTemplate<String, Object> redisTemplate;
     private final MessagePublisher messagePublisher;
-    
+
+    public ChatRoomService(RedisTemplate<String, Object> redisTemplate, MessagePublisher messagePublisher) {
+        this.redisTemplate = redisTemplate;
+        this.messagePublisher = messagePublisher;
+    }
+
     private static final String ROOM_MEMBERS_PREFIX = "room:members:";
     private static final String USER_ROOMS_PREFIX = "user:rooms:";
     

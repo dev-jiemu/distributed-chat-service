@@ -3,8 +3,8 @@ package com.example.chat.controller;
 import com.example.chat.model.ChatMessage;
 import com.example.chat.service.ConnectionService;
 import com.example.chat.service.MessageRoutingService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -17,10 +17,10 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
-@Slf4j
 @Controller
-@RequiredArgsConstructor
 public class ChatController {
+    
+    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
     
     private final MessageRoutingService messageRoutingService;
     private final ConnectionService connectionService;
@@ -28,6 +28,15 @@ public class ChatController {
 
     @Value("${HOSTNAME:server-default}")
     private String serverId;
+    
+    // 생성자 주입
+    public ChatController(MessageRoutingService messageRoutingService, 
+                         ConnectionService connectionService,
+                         SimpMessagingTemplate messagingTemplate) {
+        this.messageRoutingService = messageRoutingService;
+        this.connectionService = connectionService;
+        this.messagingTemplate = messagingTemplate;
+    }
     
     /**
      * 채팅 메시지 전송 처리

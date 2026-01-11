@@ -2,8 +2,8 @@ package com.example.chat.service;
 
 import com.example.chat.model.ChatMessage;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -12,14 +12,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class MessageHistoryService {
     
+    private static final Logger log = LoggerFactory.getLogger(MessageHistoryService.class);
+
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
-    
+
+    public MessageHistoryService(RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper) {
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
+    }
+
     private static final String MESSAGE_HISTORY_PREFIX = "messages:";
     private static final String ROOM_MESSAGE_PREFIX = "room:messages:";
     private static final int MAX_HISTORY_SIZE = 100;

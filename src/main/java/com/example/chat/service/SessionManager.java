@@ -1,7 +1,7 @@
 package com.example.chat.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -13,13 +13,17 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class SessionManager {
+
+    private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
     
     private final RedisTemplate<String, Object> redisTemplate;
-    
+
+    public SessionManager(RedisTemplate<String, Object> redisTemplate) {
+        this.redisTemplate = redisTemplate;
+    }
+
     @Value("${app.server-id}")
     private String serverId;
     

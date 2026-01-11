@@ -1,20 +1,23 @@
 package com.example.chat.service;
 
 import com.example.chat.model.ChatMessage;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
 
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class MessageConsumer {
+
+    private static final Logger log = LoggerFactory.getLogger(MessageConsumer.class);
     
     private final SimpMessagingTemplate messagingTemplate;
-    
+
+    public MessageConsumer(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
+    }
+
     @RabbitListener(queues = "#{chatQueue.name}")  // 동적으로 큐 이름 바인딩
     public void handleMessage(ChatMessage message) {
         try {

@@ -1,6 +1,7 @@
 package com.example.chat.interceptor;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
@@ -10,8 +11,8 @@ import org.springframework.web.socket.server.HandshakeInterceptor;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 
-@Slf4j
 public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
+    private static final Logger log = LoggerFactory.getLogger(WebSocketHandshakeInterceptor.class);
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, 

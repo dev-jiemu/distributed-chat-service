@@ -5,8 +5,8 @@ import com.example.chat.service.ChatRoomService;
 import com.example.chat.service.ConnectionService;
 import com.example.chat.service.MessageHistoryService;
 import com.example.chat.service.UserPresenceService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,17 +15,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@Slf4j
 @RestController
 @RequestMapping("/api/chat")
-@RequiredArgsConstructor
 public class ChatRoomController {
-    
+    private static final Logger log = LoggerFactory.getLogger(ChatRoomController.class);
+
     private final ChatRoomService chatRoomService;
     private final ConnectionService connectionService;
     private final UserPresenceService userPresenceService;
     private final MessageHistoryService messageHistoryService;
-    
+
+    public ChatRoomController(ChatRoomService chatRoomService, ConnectionService connectionService, UserPresenceService userPresenceService, MessageHistoryService messageHistoryService) {
+        this.chatRoomService = chatRoomService;
+        this.connectionService = connectionService;
+        this.userPresenceService = userPresenceService;
+        this.messageHistoryService = messageHistoryService;
+    }
+
     // 채팅방 생성
     @PostMapping("/rooms")
     public ResponseEntity<Map<String, Object>> createRoom(

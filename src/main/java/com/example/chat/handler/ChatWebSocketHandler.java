@@ -4,23 +4,28 @@ import com.example.chat.model.ChatMessage;
 import com.example.chat.service.MessagePublisher;
 import com.example.chat.service.SessionManager;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class ChatWebSocketHandler extends TextWebSocketHandler {
-    
+    private static final Logger log = LoggerFactory.getLogger(ChatWebSocketHandler.class);
+
     private final SessionManager sessionManager;
     private final MessagePublisher messagePublisher;
     private final ObjectMapper objectMapper;
-    
+
+    public ChatWebSocketHandler(SessionManager sessionManager, MessagePublisher messagePublisher, ObjectMapper objectMapper) {
+        this.sessionManager = sessionManager;
+        this.messagePublisher = messagePublisher;
+        this.objectMapper = objectMapper;
+    }
+
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         String userId = getUserIdFromSession(session);

@@ -3,8 +3,8 @@ package com.example.chat.listener;
 import com.example.chat.model.ChatMessage;
 import com.example.chat.service.ConnectionService;
 import com.example.chat.service.MessagePublisher;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -14,16 +14,20 @@ import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import org.springframework.web.socket.messaging.SessionSubscribeEvent;
 
-@Slf4j
 @Component
-@RequiredArgsConstructor
 public class StompEventListener {
+    private static final Logger log = LoggerFactory.getLogger(StompEventListener.class);
 
     private final ConnectionService connectionService;
     private final MessagePublisher messagePublisher;
     
     @Value("${app.server-id:server1}")
     private String serverId;
+
+    public StompEventListener(ConnectionService connectionService, MessagePublisher messagePublisher) {
+        this.connectionService = connectionService;
+        this.messagePublisher = messagePublisher;
+    }
 
     @EventListener
     public void handleWebSocketConnectListener(SessionConnectEvent event) {

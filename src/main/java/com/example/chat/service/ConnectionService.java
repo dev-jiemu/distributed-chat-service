@@ -4,8 +4,8 @@ import com.example.chat.entity.User;
 import com.example.chat.model.UserConnection;
 import com.example.chat.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -14,14 +14,20 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class ConnectionService {
+
+    private static final Logger log = LoggerFactory.getLogger(ConnectionService.class);
 
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
     private final UserRepository userRepository;
+
+    public ConnectionService(RedisTemplate<String, Object> redisTemplate, ObjectMapper objectMapper, UserRepository userRepository) {
+        this.redisTemplate = redisTemplate;
+        this.objectMapper = objectMapper;
+        this.userRepository = userRepository;
+    }
 
     @Value("${server.id:server1}")
     private String serverId;

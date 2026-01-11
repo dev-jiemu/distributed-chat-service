@@ -1,20 +1,24 @@
 package com.example.chat.service;
 
 import com.example.chat.model.ChatMessage;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Slf4j
 @Service
-@RequiredArgsConstructor
 public class MessagePublisher {
+
+    private static final Logger log = LoggerFactory.getLogger(MessagePublisher.class);
     
     private final MessageRoutingService messageRoutingService;
-    
+
+    public MessagePublisher(MessageRoutingService messageRoutingService) {
+        this.messageRoutingService = messageRoutingService;
+    }
+
     public void publishMessage(ChatMessage message) {
         // 메시지 ID와 타임스탬프 설정
         if (message.getId() == null) {
