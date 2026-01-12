@@ -6,6 +6,12 @@ server:
 app:
   server-id: ${SERVER_ID:server1}
 
+# JWT Configuration
+jwt:
+  secret: test
+  access-token-expiration: 3600000    # 1시간
+  refresh-token-expiration: 604800000  # 7일
+
 # Spring Configuration
 spring:
   # SQLite Configuration
