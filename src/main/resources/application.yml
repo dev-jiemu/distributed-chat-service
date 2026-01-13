@@ -8,7 +8,7 @@ app:
 
 # JWT Configuration
 jwt:
-  secret: test
+  secret: dGhpcy1pcy1hLXZlcnktc2VjdXJlLWp3dC1zZWNyZXQta2V5LWZvci1jaGF0LWFwcGxpY2F0aW9uLTIwMjQ=
   access-token-expiration: 3600000    # 1시간
   refresh-token-expiration: 604800000  # 7일
 
