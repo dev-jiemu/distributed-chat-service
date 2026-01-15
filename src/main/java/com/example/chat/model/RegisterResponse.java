@@ -5,14 +5,18 @@ import java.util.Objects;
 public class RegisterResponse {
     private String userId;
     private String email;
+    private String nickname;
     private String accessToken;
     private String refreshToken;
     private boolean success;
     private String message;
 
-    public RegisterResponse(String userId, String email, String accessToken, String refreshToken, boolean success, String message) {
+    public RegisterResponse() {}
+
+    public RegisterResponse(String userId, String email, String nickname, String accessToken, String refreshToken, boolean success, String message) {
         this.userId = userId;
         this.email = email;
+        this.nickname = nickname;
         this.accessToken = accessToken;
         this.refreshToken = refreshToken;
         this.success = success;
@@ -33,6 +37,14 @@ public class RegisterResponse {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getNickname() {
+        return nickname;
+    }
+
+    public void setNickname(String nickname) {
+        this.nickname = nickname;
     }
 
     public String getAccessToken() {
