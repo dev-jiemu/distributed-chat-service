@@ -61,9 +61,15 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/register",
                                 "/api/auth/refresh",
-                                "/ws/**",  // WebSocket 연결
+                                "/api/auth/authenticate",
+                                "/ws-chat/**",  // WebSocket 연결 (SockJS)
                                 "/actuator/health",
-                                "/error"
+                                "/error",
+                                "/",  // 루트
+                                "/index.html",  // 메인 페이지
+                                "/chat.html",  // 채팅 페이지
+                                "/*.css",  // CSS 파일들
+                                "/*.js"   // JS 파일들
                         ).permitAll()
                         .requestMatchers("/api/auth/logout").authenticated()
                         .requestMatchers("/api/chat/**").authenticated()

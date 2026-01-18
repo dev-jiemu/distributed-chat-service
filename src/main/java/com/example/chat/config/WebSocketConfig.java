@@ -1,6 +1,7 @@
 package com.example.chat.config;
 
 import com.example.chat.interceptor.WebSocketHandshakeInterceptor;
+import com.example.chat.service.JwtService;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -10,6 +11,12 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private final JwtService jwtService;
+    
+    public WebSocketConfig(JwtService jwtService) {
+        this.jwtService = jwtService;
+    }
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -26,7 +33,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // WebSocket 엔드포인트 등록 (SockJS 지원)
         registry.addEndpoint("/ws-chat")
                 .setAllowedOriginPatterns("*")
-                .addInterceptors(new WebSocketHandshakeInterceptor())
+                .addInterceptors(new WebSocketHandshakeInterceptor(jwtService))
                 .withSockJS();
     }
 }
