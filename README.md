@@ -236,3 +236,33 @@ With cloude :)
   - `auth:refresh:{userId}` - Refresh 토큰
   - `rate:anon:{clientIdentifier}` - 익명 Rate Limit
   - `rate:auth:{userId}` - 인증 Rate Limit
+---
+
+## 📚 문서
+
+### Redis 키 구조
+프로젝트에서 사용하는 모든 Redis 키 구조와 사용법은 다음 문서를 참고하세요:
+
+👉 **[Redis Keys Documentation](./REDIS_KEYS_DOCUMENTATION.md)**
+
+**주요 내용:**
+- Rate Limiting 키 (익명/인증 사용자)
+- 사용자 연결 관리 키
+- 세션 관리 키
+- 채팅방 관리 키
+- 메시지 히스토리 키
+- 사용자 상태 관리 키
+- Redis 모니터링 및 최적화 가이드
+
+**빠른 참조:**
+```bash
+# Redis CLI 접속
+docker-compose exec redis redis-cli -a test
+
+# 전체 키 조회
+KEYS *
+
+# Rate Limiting 키 조회
+KEYS rate:*
+```
+

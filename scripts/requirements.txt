@@ -1,0 +1,14 @@
+# Rate Limiting 테스트를 위한 Python 패키지
+
+# Redis 클라이언트
+redis==5.0.1
+
+# WebSocket STOMP 클라이언트
+stomp.py==8.1.0
+websocket-client==1.7.0
+
+# HTTP 요청
+requests==2.31.0
+
+# 기타 유틸리티
+colorama==0.4.6  # 터미널 색상 출력 (선택사항)
