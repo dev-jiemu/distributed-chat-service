@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -22,11 +23,13 @@ public class UserService {
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
     private final UserRepository userRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
-    public UserService(UserRepository userRepository, RedisTemplate<String, Object> redisTemplate) {
+    public UserService(UserRepository userRepository, RedisTemplate<String, Object> redisTemplate, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.redisTemplate = redisTemplate;
+        this.passwordEncoder = passwordEncoder;
     }
 
     private static final String USER_CACHE_PREFIX = "user:";
@@ -159,4 +162,36 @@ public class UserService {
         return finalNickname;
     }
 
+    public User registerUser(String email, String password) {
+        if (userRepository.findByEmail(email).isPresent()) { // 이미 있으면 null return
+            return null;
+        }
+
+        User newUser = new User();
+        newUser.setEmail(email);
+        // 암호화 적용
+        newUser.setPasswordHash(passwordEncoder.encode(password));
+        newUser.setUserType(com.example.chat.entity.UserType.AUTHENTICATED);
+        newUser.setNickname(generateUniqueNickname(email.split("@")[0]));
+        newUser.setCreatedAt(LocalDateTime.now());
+        newUser.setLastLoginAt(LocalDateTime.now());
+
+        return userRepository.save(newUser);
+    }
+
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null);
+    }
+
+    public User findByUserId(String userId) {
+        return userRepository.findByUserId(userId).orElse(null);
+    }
+
+    public void updateLastLoginTime(String userId) {
+        userRepository.findByUserId(userId).ifPresent(user -> {
+            user.setLastLoginAt(LocalDateTime.now());
+            userRepository.save(user);
+            cacheUser(user);
+        });
+    }
 }

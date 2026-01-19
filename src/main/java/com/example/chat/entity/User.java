@@ -10,7 +10,9 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "users", indexes = {
-        @Index(name = "idx_client_identifier", columnList = "clientIdentifier", unique = true)
+        @Index(name = "idx_client_identifier", columnList = "clientIdentifier", unique = true),
+        @Index(name = "idx_email", columnList = "email"),  // 이메일 검색 최적화
+        @Index(name = "idx_user_type", columnList = "userType")  // 타입별 조회 최적화
 })
 public class User {
     @Id
@@ -42,8 +44,23 @@ public class User {
 
     private LocalDateTime lastLoginAt;
 
-    public User() {
-    }
+    @Column(unique = true)
+    private String email;
+
+    @Column
+    private String passwordHash;
+
+    @Column
+    @Enumerated(EnumType.STRING)
+    private UserType userType = UserType.ANONYMOUS; // ANONYMOUS, AUTHENTICATED
+
+    @Column
+    private LocalDateTime emailVerifiedAt;
+
+    @Column
+    private boolean isAccountUpgraded = false;
+
+    public User() {}
 
     public User(Long id, String userId, String clientIdentifier, String nickname, String ipAddress, String userAgent, String deviceInfo, LocalDateTime createdAt, LocalDateTime lastActiveAt, LocalDateTime lastLoginAt) {
         this.id = id;
@@ -77,6 +94,30 @@ public class User {
 
     public String getUserId() {
         return userId;
+    }
+
+    public UserType getUserType() {
+        return userType;
+    }
+
+    public void setUserType(UserType userType) {
+        this.userType = userType;
+    }
+
+    public LocalDateTime getEmailVerifiedAt() {
+        return emailVerifiedAt;
+    }
+
+    public void setEmailVerifiedAt(LocalDateTime emailVerifiedAt) {
+        this.emailVerifiedAt = emailVerifiedAt;
+    }
+
+    public boolean isAccountUpgraded() {
+        return isAccountUpgraded;
+    }
+
+    public void setAccountUpgraded(boolean accountUpgraded) {
+        isAccountUpgraded = accountUpgraded;
     }
 
     public void setUserId(String userId) {
@@ -147,17 +188,32 @@ public class User {
         this.lastLoginAt = lastLoginAt;
     }
 
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
-        return Objects.equals(id, user.id) && Objects.equals(userId, user.userId) && Objects.equals(clientIdentifier, user.clientIdentifier) && Objects.equals(nickname, user.nickname) && Objects.equals(ipAddress, user.ipAddress) && Objects.equals(userAgent, user.userAgent) && Objects.equals(deviceInfo, user.deviceInfo) && Objects.equals(createdAt, user.createdAt) && Objects.equals(lastActiveAt, user.lastActiveAt) && Objects.equals(lastLoginAt, user.lastLoginAt);
+        return isAccountUpgraded == user.isAccountUpgraded && Objects.equals(id, user.id) && Objects.equals(userId, user.userId) && Objects.equals(clientIdentifier, user.clientIdentifier) && Objects.equals(nickname, user.nickname) && Objects.equals(ipAddress, user.ipAddress) && Objects.equals(userAgent, user.userAgent) && Objects.equals(deviceInfo, user.deviceInfo) && Objects.equals(createdAt, user.createdAt) && Objects.equals(lastActiveAt, user.lastActiveAt) && Objects.equals(lastLoginAt, user.lastLoginAt) && Objects.equals(email, user.email) && Objects.equals(passwordHash, user.passwordHash) && userType == user.userType && Objects.equals(emailVerifiedAt, user.emailVerifiedAt);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, userId, clientIdentifier, nickname, ipAddress, userAgent, deviceInfo, createdAt, lastActiveAt, lastLoginAt);
+        return Objects.hash(id, userId, clientIdentifier, nickname, ipAddress, userAgent, deviceInfo, createdAt, lastActiveAt, lastLoginAt, email, passwordHash, userType, emailVerifiedAt, isAccountUpgraded);
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 
     @Override
@@ -173,6 +229,11 @@ public class User {
                 ", createdAt=" + createdAt +
                 ", lastActiveAt=" + lastActiveAt +
                 ", lastLoginAt=" + lastLoginAt +
+                ", email='" + email + '\'' +
+                ", passwordHash='" + passwordHash + '\'' +
+                ", userType=" + userType +
+                ", emailVerifiedAt=" + emailVerifiedAt +
+                ", isAccountUpgraded=" + isAccountUpgraded +
                 '}';
     }
 }

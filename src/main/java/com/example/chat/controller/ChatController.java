@@ -1,8 +1,11 @@
 package com.example.chat.controller;
 
+import com.example.chat.exception.RateLimitExceededException;
 import com.example.chat.model.ChatMessage;
+import com.example.chat.model.ErrorMessage;
 import com.example.chat.service.ConnectionService;
 import com.example.chat.service.MessageRoutingService;
+import com.example.chat.service.RateLimitingService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,26 +28,56 @@ public class ChatController {
     private final MessageRoutingService messageRoutingService;
     private final ConnectionService connectionService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final RateLimitingService rateLimitingService;
 
     @Value("${HOSTNAME:server-default}")
     private String serverId;
-    
-    // 생성자 주입
+
     public ChatController(MessageRoutingService messageRoutingService, 
                          ConnectionService connectionService,
-                         SimpMessagingTemplate messagingTemplate) {
+                         SimpMessagingTemplate messagingTemplate,
+                         RateLimitingService rateLimitingService) {
         this.messageRoutingService = messageRoutingService;
         this.connectionService = connectionService;
         this.messagingTemplate = messagingTemplate;
+        this.rateLimitingService = rateLimitingService;
     }
     
     /**
      * 채팅 메시지 전송 처리
-     * 기존 sendMessage 메서드를 개선하여 에코백 추가
+     * 2026.01.18 Rate Limiting 적용: 비정상적인 대량 트래픽 차단
      */
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload ChatMessage chatMessage, Principal principal, SimpMessageHeaderAccessor headerAccessor) {
         String senderId = principal != null ? principal.getName() : chatMessage.getSender();
+        
+        // 세션에서 인증 여부 확인
+        Map<String, Object> sessionAttributes = headerAccessor.getSessionAttributes();
+        boolean isAuthenticated = false;
+        if (sessionAttributes != null) {
+            isAuthenticated = Boolean.TRUE.equals(sessionAttributes.get("authenticated"));
+        }
+
+        try {
+            rateLimitingService.checkRateLimit(senderId, isAuthenticated);
+        } catch (RateLimitExceededException e) {
+            // Rate Limit 초과 - 에러 메시지 전송
+            ErrorMessage errorMessage = new ErrorMessage(
+                "RATE_LIMIT_EXCEEDED",
+                "메시지 전송 한도를 초과했습니다. 잠시 후 다시 시도해주세요.",
+                e.getRetryAfterSeconds()
+            );
+            
+            messagingTemplate.convertAndSendToUser(
+                senderId, 
+                "/queue/errors", 
+                errorMessage
+            );
+            
+            log.warn("Rate limit exceeded for user: {} (authenticated: {})", senderId, isAuthenticated);
+            return;  // 메시지 전송 중단
+        }
+        // ========================================
         
         chatMessage.setSender(senderId);
         chatMessage.setSenderId(senderId);
@@ -63,7 +96,7 @@ public class ChatController {
         
         // 룸 메시지인 경우 (추후 구현)
         if (chatMessage.getRoomId() != null) {
-            // TODO: 룸 멤버들에게 브로드캐스트
+            // TODO: 룸 멤버들에게 브로드캐스트 (next job)
             log.info("Room message for room: {}", chatMessage.getRoomId());
         }
     }

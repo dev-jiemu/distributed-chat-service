@@ -339,6 +339,7 @@
     <div id="user-info">
         <span id="user-nickname"></span>
         <span id="status" class="disconnected">연결 끊김</span>
+        <button onclick="logout()" style="margin-left: 10px; padding: 5px 15px; background-color: #e74c3c; color: white; border: none; border-radius: 5px; cursor: pointer;">로그아웃</button>
     </div>
 </div>
 
@@ -454,7 +455,7 @@
             localStorage.setItem('chatUser', JSON.stringify(userData));
 
             // UI 업데이트
-            document.getElementById('user-nickname').textContent = userData.nickname;
+            document.getElementById('user-nickname').textContent = userData.nickname + ' (' + userData.userId + ')';
             document.getElementById('nickname-modal').classList.remove('show');
 
             // WebSocket 연결
@@ -463,7 +464,12 @@
             if (userData.isNewUser) {
                 displayMessage({
                     type: 'SYSTEM',
-                    content: '환영합니다! 새로운 계정이 생성되었습니다.'
+                    content: '환영합니다! 새로운 계정이 생성되었습니다. (내 ID: ' + userData.userId + ')'
+                });
+            } else {
+                displayMessage({
+                    type: 'SYSTEM',
+                    content: '다시 오신 것을 환영합니다! (내 ID: ' + userData.userId + ')'
                 });
             }
 
@@ -475,14 +481,14 @@
 
     // WebSocket 연결
     function connectWebSocket() {
-        const socket = new SockJS('/ws');
+        const socket = new SockJS('/ws-chat?userId=' + currentUser.userId);
         stompClient = Stomp.over(socket);
 
         // 디버그 모드 비활성화
         stompClient.debug = null;
 
         stompClient.connect(
-                { userId: currentUser.userId },
+                {},
                 onConnected,
                 onError
         );
@@ -493,6 +499,9 @@
 
         // 개인 메시지 큐 구독
         stompClient.subscribe('/user/queue/messages', onMessageReceived);
+
+        // 에러 메시지 구독 (Rate Limit 등)
+        stompClient.subscribe('/user/queue/errors', onErrorReceived);
 
         // 타이핑 알림 구독
         stompClient.subscribe('/user/queue/typing', onTypingReceived);
@@ -591,6 +600,39 @@
         const message = JSON.parse(payload.body);
         if (message.sender === currentChatPartner) {
             showTypingIndicator(message.sender);
+        }
+    }
+
+    // Rate Limit 등 에러 메시지 처리
+    function onErrorReceived(payload) {
+        const error = JSON.parse(payload.body);
+        console.error('Server error:', error);
+
+        if (error.errorCode === 'RATE_LIMIT_EXCEEDED') {
+            displayMessage({
+                type: 'SYSTEM',
+                content: `⚠️ ${error.message} (${error.retryAfterSeconds}초 후 재시도)`
+            });
+
+            // 일시적으로 입력 비활성화
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+
+            setTimeout(() => {
+                messageInput.disabled = false;
+                sendButton.disabled = false;
+                displayMessage({
+                    type: 'SYSTEM',
+                    content: '✅ 메시지 전송이 다시 가능합니다.'
+                });
+            }, error.retryAfterSeconds * 1000);
+        } else {
+            displayMessage({
+                type: 'SYSTEM',
+                content: `❌ 오류: ${error.message}`
+            });
         }
     }
 
@@ -763,6 +805,22 @@
             sendMessage();
         }
     });
+
+    // 로그아웃 (새 사용자로 시작)
+    function logout() {
+        if (confirm('로그아웃하시겠습니까? (새로운 사용자로 다시 시작합니다)')) {
+            // WebSocket 연결 종료
+            if (stompClient && stompClient.connected) {
+                stompClient.disconnect();
+            }
+
+            // localStorage 초기화
+            localStorage.removeItem('chatUser');
+
+            // 페이지 새로고침
+            location.reload();
+        }
+    }
 </script>
 </body>
 </html>

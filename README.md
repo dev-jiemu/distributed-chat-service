@@ -145,13 +145,14 @@ sequenceDiagram
 
 ### Memo
 Next
-- JWT 기반 인증 추가
+- ~~JWT 기반 인증 추가~~ ✅ 완료
+- ~~Rate Limiting 구현~~ ✅ 완료 (Token Bucket 알고리즘)
 - 파일 업로드 지원
 - 읽음 확인 기능
 - 타이핑 표시 기능
 - 푸시 알림
 - 메시지 암호화
-- 데이터베이스 연동
+- 메시지 영구 저장 (DB)
 - Kubernetes / Helm chart 배포 설정
 
 ---
@@ -197,18 +198,35 @@ Next
 | 다중 디바이스 | ❌ | ✅ |
 
 #### 3️⃣ Phase 3: 대용량 처리 최적화
-- **Rate Limiting**
-  - 익명: 분당 30개 메시지
-  - 인증: 분당 100개 메시지
+With cloude :)
+
+**대용량 처리 전략**
+- 수평 확장: 서버 여러 대로 트래픽 분산 (RabbitMQ + Redis)
+- 메시지 큐: RabbitMQ로 서버 간 메시지 라우팅
+- 캐싱: Redis로 DB 부하 감소
+- 목표: 동시 접속자 수만 명, 초당 수천 개 메시지 처리
+
+**Rate Limiting (안전장치)**
+> 목적: 비정상적인 대량 트래픽으로부터 시스템 보호  
+> 정상 사용자에게는 영향 없도록 여유롭게 설정
+
+- **제한 수치**
+  - 익명 사용자: 분당 200개 (초당 ~3개)
+  - 인증 사용자: 분당 500개 (초당 ~8개)
+  - 버스트 허용: 10초간 최대 100개
   
-- **캐싱 전략**
-  - 익명: clientIdentifier 기반 (1시간)
-  - 인증: userId 기반 (24시간)
-  - 이중 캐시 레이어
+- **구현 방식**
+  - 알고리즘: Token Bucket (순간적 버스트 허용)
+  - 저장소: Redis (메모리 효율적, TTL 5분)
+  - 적용 시점: ChatController 진입점 (시스템 부하 최소화)
   
-- **메시지 우선순위**
-  - 인증 사용자 메시지 우선 처리
-  - 큐 분리 (익명/인증)
+- **Redis 키 구조**
+  - `rate:anon:{clientIdentifier}` - 익명 사용자 Rate Limit
+  - `rate:auth:{userId}` - 인증 사용자 Rate Limit
+  
+- **참고**
+  - 정상 사용자는 분당 10개 미만 전송 → 제한 체감 없음
+  - 봇/스크립트는 초당 수백 개 시도 → 확실히 차단
 
 ### 기술 스택
 - Spring Security + JWT
@@ -218,3 +236,33 @@ Next
   - `auth:refresh:{userId}` - Refresh 토큰
   - `rate:anon:{clientIdentifier}` - 익명 Rate Limit
   - `rate:auth:{userId}` - 인증 Rate Limit
+---
+
+## 📚 문서
+
+### Redis 키 구조
+프로젝트에서 사용하는 모든 Redis 키 구조와 사용법은 다음 문서를 참고하세요:
+
+👉 **[Redis Keys Documentation](./REDIS_KEYS_DOCUMENTATION.md)**
+
+**주요 내용:**
+- Rate Limiting 키 (익명/인증 사용자)
+- 사용자 연결 관리 키
+- 세션 관리 키
+- 채팅방 관리 키
+- 메시지 히스토리 키
+- 사용자 상태 관리 키
+- Redis 모니터링 및 최적화 가이드
+
+**빠른 참조:**
+```bash
+# Redis CLI 접속
+docker-compose exec redis redis-cli -a test
+
+# 전체 키 조회
+KEYS *
+
+# Rate Limiting 키 조회
+KEYS rate:*
+```
+

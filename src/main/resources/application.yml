@@ -5,6 +5,25 @@ server:
 # Custom Application Properties
 app:
   server-id: ${SERVER_ID:server1}
+  
+  # Rate Limiting Configuration
+  rate-limit:
+    # 익명 사용자 제한
+    anonymous:
+      limit: 200              # 분당 최대 메시지 수
+      burst: 100              # 버스트 허용 (한번에 보낼 수 있는 최대 개수)
+    # 인증된 사용자 제한
+    authenticated:
+      limit: 500              # 분당 최대 메시지 수
+      burst: 100              # 버스트 허용
+    # Redis TTL 설정 (초 단위)
+    token-ttl: 300            # 5분 (비활성 사용자 자동 정리)
+
+# JWT Configuration
+jwt:
+  secret: dGhpcy1pcy1hLXZlcnktc2VjdXJlLWp3dC1zZWNyZXQta2V5LWZvci1jaGF0LWFwcGxpY2F0aW9uLTIwMjQ=
+  access-token-expiration: 3600000    # 1시간
+  refresh-token-expiration: 604800000  # 7일
 
 # Spring Configuration
 spring:
