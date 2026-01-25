@@ -45,21 +45,15 @@ public class ChatController {
     
     /**
      * 채팅 메시지 전송 처리
-     * 2026.01.18 Rate Limiting 적용: 비정상적인 대량 트래픽 차단
+     * Rate Limiting 적용
      */
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload ChatMessage chatMessage, Principal principal, SimpMessageHeaderAccessor headerAccessor) {
         String senderId = principal != null ? principal.getName() : chatMessage.getSender();
         
-        // 세션에서 인증 여부 확인
-        Map<String, Object> sessionAttributes = headerAccessor.getSessionAttributes();
-        boolean isAuthenticated = false;
-        if (sessionAttributes != null) {
-            isAuthenticated = Boolean.TRUE.equals(sessionAttributes.get("authenticated"));
-        }
-
         try {
-            rateLimitingService.checkRateLimit(senderId, isAuthenticated);
+            // Rate Limiting 체크 (모든 사용자 동일한 정책)
+            rateLimitingService.checkRateLimit(senderId);
         } catch (RateLimitExceededException e) {
             // Rate Limit 초과 - 에러 메시지 전송
             ErrorMessage errorMessage = new ErrorMessage(
@@ -74,7 +68,7 @@ public class ChatController {
                 errorMessage
             );
             
-            log.warn("Rate limit exceeded for user: {} (authenticated: {})", senderId, isAuthenticated);
+            log.warn("Rate limit exceeded for user: {}", senderId);
             return;  // 메시지 전송 중단
         }
         // ========================================
@@ -87,7 +81,9 @@ public class ChatController {
         log.info("Received message from {} to {}", chatMessage.getSender(), chatMessage.getReceiver());
         
         // 발신자에게 에코백 (자신이 보낸 메시지 확인)
+        // UserInterceptor가 userId를 Principal로 설정했으므로 convertAndSendToUser 작동
         messagingTemplate.convertAndSendToUser(senderId, "/queue/messages", chatMessage);
+        log.debug("Echo message sent to user: {}", senderId);
         
         // 수신자가 있고 자신이 아닌 경우 메시지 라우팅
         if (chatMessage.getReceiver() != null && !chatMessage.getReceiver().equals(senderId)) {

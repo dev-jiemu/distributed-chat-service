@@ -6,18 +6,11 @@ server:
 app:
   server-id: ${SERVER_ID:server1}
   
-  # Rate Limiting Configuration
+  # Rate Limiting Configuration (모든 사용자 동일)
   rate-limit:
-    # 익명 사용자 제한
-    anonymous:
-      limit: 200              # 분당 최대 메시지 수
-      burst: 100              # 버스트 허용 (한번에 보낼 수 있는 최대 개수)
-    # 인증된 사용자 제한
-    authenticated:
-      limit: 500              # 분당 최대 메시지 수
-      burst: 100              # 버스트 허용
-    # Redis TTL 설정 (초 단위)
-    token-ttl: 300            # 5분 (비활성 사용자 자동 정리)
+    limit: 200              # 분당 최대 메시지 수
+    burst: 100              # 버스트 허용 (한번에 보낼 수 있는 최대 개수)
+    token-ttl: 300          # Redis TTL (초) - 5분
 
 # JWT Configuration
 jwt:
@@ -42,6 +35,13 @@ spring:
       hibernate:
         dialect: org.hibernate.community.dialect.SQLiteDialect
     show-sql: true
+  
+  # SQL 스크립트 자동 실행
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:data-test.sql
+      continue-on-error: true  # 중복 데이터 에러 무시
 
   # Redis Configuration
   data:

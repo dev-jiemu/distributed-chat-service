@@ -3,6 +3,7 @@ package com.example.chat.config;
 import com.example.chat.interceptor.WebSocketHandshakeInterceptor;
 import com.example.chat.service.JwtService;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
@@ -13,9 +14,11 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtService jwtService;
-    
-    public WebSocketConfig(JwtService jwtService) {
+    private final UserInterceptor userInterceptor;
+
+    public WebSocketConfig(JwtService jwtService, UserInterceptor userInterceptor) {
         this.jwtService = jwtService;
+        this.userInterceptor = userInterceptor;
     }
 
     @Override
@@ -35,5 +38,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOriginPatterns("*")
                 .addInterceptors(new WebSocketHandshakeInterceptor(jwtService))
                 .withSockJS();
+    }
+
+    @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        // UserInterceptor 등록 - STOMP CONNECT 시 userId를 Principal로 설정
+        registration.interceptors(userInterceptor);
     }
 }
