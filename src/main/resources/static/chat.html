@@ -374,6 +374,24 @@
     let isTyping = false;
     let chatHistory = {}; // 채팅 기록 저장
 
+    // 전역 fetch 인터셉터 - 모든 API 요청에 JWT 토큰 자동 추가
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+        let [resource, config] = args;
+
+        // API 요청인 경우에만 토큰 추가
+        if (typeof resource === 'string' && resource.startsWith('/api/')) {
+            const token = localStorage.getItem('accessToken');
+            if (token) {
+                config = config || {};
+                config.headers = config.headers || {};
+                config.headers['Authorization'] = 'Bearer ' + token;
+            }
+        }
+
+        return originalFetch(resource, config);
+    };
+
     // 페이지 로드 시 초기화
     window.onload = function() {
         checkUserSession();

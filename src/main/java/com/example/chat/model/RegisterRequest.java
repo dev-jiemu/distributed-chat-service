@@ -8,6 +8,8 @@ public class RegisterRequest {
     private String confirmPassword;
     private String currentUserId;
 
+    public RegisterRequest() {}
+
     public RegisterRequest(String email, String password, String confirmPassword, String currentUserId) {
         this.email = email;
         this.password = password;
