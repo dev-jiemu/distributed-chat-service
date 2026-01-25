@@ -49,7 +49,11 @@ public class ChatController {
      */
     @MessageMapping("/chat.sendMessage")
     public void sendMessage(@Payload ChatMessage chatMessage, Principal principal, SimpMessageHeaderAccessor headerAccessor) {
-        String senderId = principal != null ? principal.getName() : chatMessage.getSender();
+        if (principal == null) {
+            log.error("Principal is null, cannot process message.");
+            throw new IllegalArgumentException("Principal cannot be null");
+        }
+        String senderId = principal.getName();
         
         try {
             // Rate Limiting 체크 (모든 사용자 동일한 정책)
@@ -98,42 +102,15 @@ public class ChatController {
     }
     
     /**
-     * 사용자 접속 처리
-     */
-    @MessageMapping("/chat.addUser")
-    public void addUser(@Payload ChatMessage chatMessage, SimpMessageHeaderAccessor headerAccessor) {
-        String sessionId = headerAccessor.getSessionId();
-        String userId = chatMessage.getSender();
-        
-        if (sessionId == null) {
-            log.error("Session ID is null for user: {}", userId);
-            return;
-        }
-        
-        // Redis에 사용자 연결 정보 저장
-        connectionService.saveUserConnection(userId, sessionId);
-        
-        // 세션에 사용자 ID 저장
-        Map<String, Object> sessionAttributes = headerAccessor.getSessionAttributes();
-        if (sessionAttributes != null) {
-            sessionAttributes.put("userId", userId);
-        } else {
-            log.warn("Session attributes is null for session: {}", sessionId);
-        }
-        
-        log.info("User {} joined with session {} on server {}", userId, sessionId, serverId);
-        
-        // 접속 메시지 생성 (옵션)
-        // ChatMessage joinMessage = ChatMessage.createJoinMessage(userId);
-        // TODO: 필요시 친구나 룸 멤버들에게 접속 알림 전송
-    }
-    
-    /**
      * 타이핑 알림
      */
     @MessageMapping("/chat.typing")
     public void typing(@Payload ChatMessage message, Principal principal) {
-        String userId = principal != null ? principal.getName() : message.getSender();
+        if (principal == null) {
+            log.error("Principal is null, cannot process typing notification.");
+            throw new IllegalArgumentException("Principal cannot be null");
+        }
+        String userId = principal.getName();
         message.setSender(userId);
         message.setType(ChatMessage.MessageType.TYPING);
         message.setTimestamp(LocalDateTime.now());
@@ -153,7 +130,11 @@ public class ChatController {
      */
     @MessageMapping("/chat.read")
     public void markAsRead(@Payload ChatMessage message, Principal principal) {
-        String userId = principal != null ? principal.getName() : message.getSender();
+        if (principal == null) {
+            log.error("Principal is null, cannot process read receipt.");
+            throw new IllegalArgumentException("Principal cannot be null");
+        }
+        String userId = principal.getName();
         message.setSender(userId);
         message.setType(ChatMessage.MessageType.READ);
         message.setTimestamp(LocalDateTime.now());

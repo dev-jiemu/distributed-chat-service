@@ -24,8 +24,9 @@ from typing import Dict, List
 class ChatWebSocketClient:
     """WebSocket STOMP 클라이언트"""
     
-    def __init__(self, user_id: str, server_url="localhost", server_port=8081):
+    def __init__(self, user_id: str, token: str, server_url="localhost", server_port=8081):
         self.user_id = user_id
+        self.token = token
         self.server_url = server_url
         self.server_port = server_port
         self.ws = None
@@ -40,16 +41,12 @@ class ChatWebSocketClient:
     def connect(self):
         """WebSocket 연결"""
         try:
-            # SockJS WebSocket 엔드포인트
-            # SockJS는 /ws-chat/{server_id}/{session_id}/websocket 형식 사용
             import random
             server_id = random.randint(0, 999)
             session_id = ''.join([chr(random.randint(97, 122)) for _ in range(8)])
             
-            # userId를 쿼리 파라미터로 추가 (WebSocketHandshakeInterceptor에서 사용)
-            ws_url = f"ws://{self.server_url}:{self.server_port}/ws-chat/{server_id}/{session_id}/websocket?userId={self.user_id}"
+            ws_url = f"ws://{self.server_url}:{self.server_port}/ws-chat/{server_id}/{session_id}/websocket?token={self.token}"
             
-            # WebSocket 연결
             self.ws = websocket.WebSocketApp(
                 ws_url,
                 on_open=self._on_open,
@@ -58,12 +55,10 @@ class ChatWebSocketClient:
                 on_close=self._on_close
             )
             
-            # 백그라운드 스레드에서 실행
             wst = threading.Thread(target=self.ws.run_forever)
             wst.daemon = True
             wst.start()
             
-            # 연결 대기
             timeout = 5
             start = time.time()
             while not self.connected and (time.time() - start) < timeout:
@@ -80,36 +75,23 @@ class ChatWebSocketClient:
     
     def _on_open(self, ws):
         """연결 성공 콜백"""
-        # STOMP CONNECT 프레임 전송
-        # SockJS는 메시지를 JSON 배열로 감싸야 함!
-        # userId 헤더 추가 (StompEventListener에서 사용)
-        connect_frame = f"CONNECT\naccept-version:1.1,1.0\nheart-beat:10000,10000\nuserId:{self.user_id}\n\n\x00"
+        connect_frame = f"CONNECT\naccept-version:1.1,1.0\nheart-beat:10000,10000\n\n\x00"
         sockjs_message = json.dumps([connect_frame])
         ws.send(sockjs_message)
     
     def _on_message(self, ws, message):
         """메시지 수신 콜백"""
-        # 디버깅: 받은 메시지 출력
-        # print(f"[DEBUG] Received: {message[:100]}")
-        
-        # SockJS는 메시지를 JSON 배열로 감싸서 보냄
         try:
-            # SockJS 프레임: "o" (open), "a[...]" (array), "h" (heartbeat), "c[...]" (close)
             if message.startswith('o'):
-                # Open frame - 연결 성공
                 return
             elif message.startswith('h'):
-                # Heartbeat
                 return
             elif message.startswith('c'):
-                # Close frame
                 self.connected = False
                 return
             elif message.startswith('a'):
-                # Array of messages
-                messages = json.loads(message[1:])  # 'a' 제거 후 JSON 파싱
+                messages = json.loads(message[1:])
                 for msg in messages:
-                    # print(f"[DEBUG] Processing STOMP frame: {msg[:100]}")
                     self._handle_stomp_frame(msg)
         except Exception as e:
             print(f"메시지 처리 에러: {e}, message: {message[:200]}")
@@ -117,54 +99,27 @@ class ChatWebSocketClient:
     def _handle_stomp_frame(self, frame):
         """STOMP 프레임 처리"""
         if frame.startswith("CONNECTED"):
-            # 연결 완료
             self.connected = True
-            
-            # 사용자 추가
-            self._send_add_user()
-            
-            # 구독 설정
             self._subscribe_queues()
             
         elif frame.startswith("MESSAGE"):
-            # 메시지 수신
             self._handle_message_frame(frame)
     
     def _on_error(self, ws, error):
         """에러 콜백"""
-        # print(f"⚠️  WebSocket 에러 ({self.user_id}): {error}")
         pass
     
     def _on_close(self, ws, close_status_code, close_msg):
         """연결 종료 콜백"""
         self.connected = False
     
-    def _send_add_user(self):
-        """사용자 추가 메시지 전송"""
-        add_user_msg = {
-            "type": "JOIN",
-            "sender": self.user_id,
-            "timestamp": datetime.now().isoformat()
-        }
-        
-        body = json.dumps(add_user_msg)
-        frame = f"SEND\ndestination:/app/chat.addUser\ncontent-type:application/json\ncontent-length:{len(body)}\n\n{body}\x00"
-        sockjs_message = json.dumps([frame])
-        self.ws.send(sockjs_message)
-    
     def _subscribe_queues(self):
         """메시지 큐 구독"""
-        # 세션 ID를 URL에서 추출
-        # ws://localhost:8081/ws-chat/{server_id}/{session_id}/websocket
-        # session_id는 이미 알고 있어야 함 - _on_open에서 저장
-        
-        # 에러 큐 구독
         self.subscription_id += 1
         sub_frame = f"SUBSCRIBE\nid:sub-{self.subscription_id}\ndestination:/user/queue/errors\n\n\x00"
         sockjs_message = json.dumps([sub_frame])
         self.ws.send(sockjs_message)
         
-        # 메시지 큐 구독 (세션 ID 포함하지 않음 - Spring이 자동 매핑)
         self.subscription_id += 1
         sub_frame = f"SUBSCRIBE\nid:sub-{self.subscription_id}\ndestination:/user/queue/messages\n\n\x00"
         sockjs_message = json.dumps([sub_frame])

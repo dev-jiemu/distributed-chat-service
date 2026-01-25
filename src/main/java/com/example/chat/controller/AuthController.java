@@ -51,27 +51,6 @@ public class AuthController {
     }
 
     /**
-     * 익명 사용자 로그인 (기존 로직 유지)
-     */
-    @PostMapping("/login")
-    public ResponseEntity<UserDto> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest) throws JsonProcessingException {
-
-        String ipAddress = getClientIpAddress(httpRequest);
-        String userAgent = httpRequest.getHeader("User-Agent");
-
-        User user = userService.findOrCreateUser(ipAddress, userAgent, request.getNickname(), request.getUserId());
-
-        UserDto userDto = UserDto.builder()
-                .userId(user.getUserId())
-                .nickname(user.getNickname())
-                .createdAt(user.getCreatedAt())
-                .isNewUser(user.getCreatedAt().equals(user.getLastLoginAt()))
-                .build();
-
-        return ResponseEntity.status(HttpStatus.OK).body(userDto);
-    }
-
-    /**
      * 회원가입
      */
     @PostMapping("/register")
@@ -227,17 +206,5 @@ public class AuthController {
         }
     }
 
-    private String getClientIpAddress(HttpServletRequest request) {
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
-        }
 
-        String xRealIp = request.getHeader("X-Real-IP");
-        if (xRealIp != null && !xRealIp.isEmpty()) {
-            return xRealIp;
-        }
-
-        return request.getRemoteAddr();
-    }
 }

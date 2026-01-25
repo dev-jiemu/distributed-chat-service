@@ -1,7 +1,6 @@
 package com.example.chat.service;
 
 import com.example.chat.entity.User;
-import com.example.chat.entity.UserType;
 import com.example.chat.repository.UserRepository;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -42,14 +41,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         @Override
         public Collection<? extends GrantedAuthority> getAuthorities() {
             List<GrantedAuthority> authorities = new ArrayList<>();
-            
-            // UserType에 따른 권한 설정
-            if (user.getUserType() == UserType.AUTHENTICATED) {
-                authorities.add(new SimpleGrantedAuthority("ROLE_AUTHENTICATED"));
-            } else {
-                authorities.add(new SimpleGrantedAuthority("ROLE_ANONYMOUS"));
-            }
-            
+            authorities.add(new SimpleGrantedAuthority("ROLE_AUTHENTICATED"));
             return authorities;
         }
         
