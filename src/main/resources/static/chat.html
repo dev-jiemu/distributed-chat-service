@@ -496,11 +496,23 @@
             timestamp: new Date().toISOString()
         };
 
+        console.log('[sendMessage] 메시지 전송:', message.sender, '→', message.receiver);
+
         // STOMP로 메시지 전송
         stompClient.send('/app/chat.sendMessage', {}, JSON.stringify(message));
 
+        // 채팅방 목록에 상대방 추가 (아직 없는 경우)
+        console.log('[sendMessage] updateChatList 호출:', currentChatPartner);
+        updateChatList(currentChatPartner);
+
         // 자신의 메시지 즉시 표시
         displayMessage({
+            ...message,
+            own: true
+        });
+
+        // 자신의 메시지를 대화 상대방의 채팅 기록에 저장
+        saveToChatHistory(currentChatPartner, {
             ...message,
             own: true
         });
@@ -512,9 +524,18 @@
     function onMessageReceived(payload) {
         const message = JSON.parse(payload.body);
 
+        console.log('[onMessageReceived] 메시지 수신:', message);
+
         switch (message.type) {
             case 'CHAT':
-                // 채팅방 목록에 추가
+                // 자신이 보낸 메시지의 에코백은 무시 (이미 sendMessage에서 표시하고 저장함)
+                if (message.sender === currentUser.userId) {
+                    console.log('[onMessageReceived] 자신의 에코백 무시');
+                    return;
+                }
+
+                console.log('[onMessageReceived] 상대방 메시지 처리 - updateChatList 호출:', message.sender);
+                // 채팅방 목록에 추가 (발신자 기준)
                 updateChatList(message.sender);
 
                 // 현재 대화 상대의 메시지인 경우만 표시
@@ -525,7 +546,7 @@
                     showNotification(message.sender);
                 }
 
-                // 채팅 기록에 저장
+                // 채팅 기록에 저장 (발신자를 키로 사용)
                 saveToChatHistory(message.sender, message);
                 break;
 
@@ -675,9 +696,6 @@
         // UI 업데이트
         document.getElementById('chat-title').textContent = userId + '님과의 대화';
 
-        // 채팅방 목록 업데이트
-        updateChatList(userId);
-
         // 이전 채팅 내용 표시
         loadChatHistory(userId);
 
@@ -693,15 +711,26 @@
 
     // 채팅방 목록 업데이트
     function updateChatList(userId) {
+        console.log('[updateChatList] 호출됨 - userId:', userId, ', currentUser:', currentUser.userId);
+
+        // 자기 자신은 채팅 목록에 추가하지 않음
+        if (userId === currentUser.userId) {
+            console.log('[updateChatList] 본인이므로 무시');
+            return;
+        }
+
         const roomItems = document.getElementById('room-items');
         let roomItem = document.querySelector(`[data-user-id="${userId}"]`);
 
         if (!roomItem) {
+            console.log('[updateChatList] 새 채팅방 생성:', userId);
             roomItem = document.createElement('div');
             roomItem.classList.add('room-item');
             roomItem.setAttribute('data-user-id', userId);
             roomItem.onclick = () => selectChat(userId);
             roomItems.appendChild(roomItem);
+        } else {
+            console.log('[updateChatList] 기존 채팅방 업데이트:', userId);
         }
 
         roomItem.textContent = userId;

@@ -83,12 +83,7 @@ public class ChatController {
         chatMessage.setTimestamp(LocalDateTime.now());
         
         log.info("Received message from {} to {}", chatMessage.getSender(), chatMessage.getReceiver());
-        
-        // 발신자에게 에코백 (자신이 보낸 메시지 확인)
-        // UserInterceptor가 userId를 Principal로 설정했으므로 convertAndSendToUser 작동
-        messagingTemplate.convertAndSendToUser(senderId, "/queue/messages", chatMessage);
-        log.debug("Echo message sent to user: {}", senderId);
-        
+
         // 수신자가 있고 자신이 아닌 경우 메시지 라우팅
         if (chatMessage.getReceiver() != null && !chatMessage.getReceiver().equals(senderId)) {
             messageRoutingService.routeMessage(chatMessage);

@@ -83,14 +83,13 @@ public class StompEventListener {
     }
     
     private String extractUserId(StompHeaderAccessor headerAccessor) {
-        // STOMP 헤더에서 userId 추출
-        String userId = headerAccessor.getFirstNativeHeader("userId");
-        if (userId != null) {
-            return userId;
+        // Principal에서 userId 추출 (UserInterceptor에서 설정한 값)
+        if (headerAccessor.getUser() != null) {
+            return headerAccessor.getUser().getName();
         }
         
-        // 연결 URL 파라미터에서 추출 (폴백)
-        if (headerAccessor.getCommand() != null && headerAccessor.getSessionAttributes() != null) {
+        // 세션 속성에서 userId 추출 (폴백)
+        if (headerAccessor.getSessionAttributes() != null) {
             Object userIdAttr = headerAccessor.getSessionAttributes().get("userId");
             if (userIdAttr != null) {
                 return userIdAttr.toString();
