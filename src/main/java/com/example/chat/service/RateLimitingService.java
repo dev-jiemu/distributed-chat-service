@@ -14,52 +14,42 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Token Bucket 알고리즘을 사용한 Rate Limiting 서비스
  * 
- * Token Bucket 작동 방식:
- * 1. 각 사용자는 "토큰 바구니"를 가짐
- * 2. 메시지 1개 = 토큰 1개 소비
- * 3. 토큰은 시간이 지나면 자동으로 충전됨 (refillRate)
- * 4. 바구니는 최대 용량(maxTokens)까지만 담을 수 있음
- * 5. 토큰이 없으면 메시지 전송 불가
+ * 모든 사용자에게 동일한 Rate Limit 적용
+ * - 분당 메시지 수: 200개
+ * - 버스트 허용: 100개
+ * - 충전 속도: 200/60 = 3.33 토큰/초
  *
- * Ref. https://etloveguitar.tistory.com/126 읽어보기 :)
+ * Ref. https://etloveguitar.tistory.com/126
  */
 @Service
 public class RateLimitingService {
     
     private static final Logger log = LoggerFactory.getLogger(RateLimitingService.class);
     
-    private static final String RATE_LIMIT_KEY_PREFIX_ANON = "rate:anon:";
-    private static final String RATE_LIMIT_KEY_PREFIX_AUTH = "rate:auth:";
+    private static final String RATE_LIMIT_KEY_PREFIX = "rate:user:";
     
     private final RedisTemplate<String, Object> redisTemplate;
     private final ObjectMapper objectMapper;
     
-    // 설정값
-    @Value("${app.rate-limit.anonymous.limit}")
-    private int anonymousLimit;  // 분당 메시지 수
+    // 설정값 - 모든 사용자 동일
+    @Value("${app.rate-limit.limit:200}")
+    private int messageLimit;  // 분당 메시지 수
     
-    @Value("${app.rate-limit.anonymous.burst}")
-    private int anonymousBurst;  // 버스트 허용
+    @Value("${app.rate-limit.burst:100}")
+    private int burstLimit;  // 버스트 허용
     
-    @Value("${app.rate-limit.authenticated.limit}")
-    private int authenticatedLimit;
-    
-    @Value("${app.rate-limit.authenticated.burst}")
-    private int authenticatedBurst;
-    
-    @Value("${app.rate-limit.token-ttl}")
+    @Value("${app.rate-limit.token-ttl:300}")
     private int tokenTtl;  // Redis TTL (초)
     
     // 메트릭
     private final Counter allowedCounter;
     private final Counter rejectedCounter;
-    private final Counter anonymousRejectedCounter;
-    private final Counter authenticatedRejectedCounter;
 
     public RateLimitingService(
             RedisTemplate<String, Object> redisTemplate,
@@ -77,29 +67,20 @@ public class RateLimitingService {
         this.rejectedCounter = Counter.builder("rate_limit.rejected")
                 .description("Number of rejected requests")
                 .register(meterRegistry);
-        
-        this.anonymousRejectedCounter = Counter.builder("rate_limit.rejected.anonymous")
-                .description("Number of rejected anonymous requests")
-                .register(meterRegistry);
-        
-        this.authenticatedRejectedCounter = Counter.builder("rate_limit.rejected.authenticated")
-                .description("Number of rejected authenticated requests")
-                .register(meterRegistry);
     }
 
     /**
      * Rate Limit 체크 (메인 메서드)
      * 
-     * @param userId 사용자 ID (익명의 경우 clientIdentifier)
-     * @param isAuthenticated 인증된 사용자 여부
-     * @return true면 메시지 전송 가능, false면 불가
+     * @param userId 사용자 ID
+     * @return true면 메시지 전송 가능
      * @throws RateLimitExceededException Rate Limit 초과 시
      */
-    public boolean checkRateLimit(String userId, boolean isAuthenticated) {
-        String redisKey = getRedisKey(userId, isAuthenticated);
+    public boolean checkRateLimit(String userId) {
+        String redisKey = RATE_LIMIT_KEY_PREFIX + userId;
         
         // Redis에서 현재 Rate Limit 정보 조회
-        RateLimitInfo rateLimitInfo = getRateLimitInfo(redisKey, isAuthenticated);
+        RateLimitInfo rateLimitInfo = getRateLimitInfo(redisKey);
         
         // Token Bucket 알고리즘 적용
         LocalDateTime now = LocalDateTime.now();
@@ -117,25 +98,19 @@ public class RateLimitingService {
             // 메트릭 기록
             allowedCounter.increment();
             
-            log.debug("Rate limit check passed for user: {} (authenticated: {}), remaining tokens: {}", 
-                userId, isAuthenticated, rateLimitInfo.getTokens());
+            log.debug("Rate limit check passed for user: {}, remaining tokens: {}", 
+                userId, rateLimitInfo.getTokens());
             
             return true;
         } else {
             // 토큰 부족 - 거부
-            // 다음 토큰이 충전될 때까지 대기 시간 계산
             long retryAfterSeconds = calculateRetryAfter(rateLimitInfo);
             
             // 메트릭 기록
             rejectedCounter.increment();
-            if (isAuthenticated) {
-                authenticatedRejectedCounter.increment();
-            } else {
-                anonymousRejectedCounter.increment();
-            }
             
-            log.warn("Rate limit exceeded for user: {} (authenticated: {}), retry after {} seconds", 
-                userId, isAuthenticated, retryAfterSeconds);
+            log.warn("Rate limit exceeded for user: {}, retry after {} seconds", 
+                userId, retryAfterSeconds);
             
             throw new RateLimitExceededException(userId, retryAfterSeconds);
         }
@@ -185,28 +160,23 @@ public class RateLimitingService {
 
     /**
      * Redis에서 Rate Limit 정보 조회
-     * 없으면 새로 생성 (처음 접속한 사용자)
+     * 없으면 새로 생성
      */
-    private RateLimitInfo getRateLimitInfo(String redisKey, boolean isAuthenticated) {
+    private RateLimitInfo getRateLimitInfo(String redisKey) {
         try {
             String json = (String) redisTemplate.opsForValue().get(redisKey);
             
             if (json != null) {
-                // 기존 정보 있음
                 return objectMapper.readValue(json, RateLimitInfo.class);
             } else {
                 // 처음 접속 - 초기화
-                int maxTokens = isAuthenticated ? authenticatedBurst : anonymousBurst;
-                double refillRate = calculateRefillRate(isAuthenticated);
-                
-                return RateLimitInfo.initialize(maxTokens, refillRate);
+                double refillRate = messageLimit / 60.0;  // 분당 → 초당
+                return RateLimitInfo.initialize(burstLimit, refillRate);
             }
         } catch (JsonProcessingException e) {
             log.error("Failed to parse RateLimitInfo from Redis", e);
-            // 파싱 실패 시 새로 생성
-            int maxTokens = isAuthenticated ? authenticatedBurst : anonymousBurst;
-            double refillRate = calculateRefillRate(isAuthenticated);
-            return RateLimitInfo.initialize(maxTokens, refillRate);
+            double refillRate = messageLimit / 60.0;
+            return RateLimitInfo.initialize(burstLimit, refillRate);
         }
     }
 
@@ -223,29 +193,11 @@ public class RateLimitingService {
     }
 
     /**
-     * 초당 토큰 충전 비율 계산
-     * 
-     * 예: 분당 200개 → 초당 200/60 = 3.33개
-     */
-    private double calculateRefillRate(boolean isAuthenticated) {
-        int limitPerMinute = isAuthenticated ? authenticatedLimit : anonymousLimit;
-        return limitPerMinute / 60.0;  // 분당 → 초당 변환
-    }
-
-    /**
-     * Redis 키 생성
-     */
-    private String getRedisKey(String userId, boolean isAuthenticated) {
-        String prefix = isAuthenticated ? RATE_LIMIT_KEY_PREFIX_AUTH : RATE_LIMIT_KEY_PREFIX_ANON;
-        return prefix + userId;
-    }
-
-    /**
      * 사용자의 Rate Limit 정보 조회 (디버깅/모니터링용)
      */
-    public RateLimitInfo getRateLimitStatus(String userId, boolean isAuthenticated) {
-        String redisKey = getRedisKey(userId, isAuthenticated);
-        RateLimitInfo info = getRateLimitInfo(redisKey, isAuthenticated);
+    public RateLimitInfo getRateLimitStatus(String userId) {
+        String redisKey = RATE_LIMIT_KEY_PREFIX + userId;
+        RateLimitInfo info = getRateLimitInfo(redisKey);
         
         // 현재 시간 기준으로 토큰 재계산
         LocalDateTime now = LocalDateTime.now();
@@ -259,9 +211,9 @@ public class RateLimitingService {
     /**
      * 특정 사용자의 Rate Limit 초기화 (관리자용)
      */
-    public void resetRateLimit(String userId, boolean isAuthenticated) {
-        String redisKey = getRedisKey(userId, isAuthenticated);
+    public void resetRateLimit(String userId) {
+        String redisKey = RATE_LIMIT_KEY_PREFIX + userId;
         redisTemplate.delete(redisKey);
-        log.info("Rate limit reset for user: {} (authenticated: {})", userId, isAuthenticated);
+        log.info("Rate limit reset for user: {}", userId);
     }
 }

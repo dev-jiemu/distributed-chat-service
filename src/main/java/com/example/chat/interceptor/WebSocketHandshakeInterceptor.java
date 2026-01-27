@@ -22,57 +22,43 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
     }
 
     @Override
-    public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response, 
+    public boolean beforeHandshake(ServerHttpRequest request, ServerHttpResponse response,
                                    WebSocketHandler wsHandler, Map<String, Object> attributes) throws Exception {
-        
+
         if (request instanceof ServletServerHttpRequest) {
             ServletServerHttpRequest servletRequest = (ServletServerHttpRequest) request;
             HttpServletRequest httpRequest = servletRequest.getServletRequest();
-            
-            // 쿼리 파라미터에서 userId 추출
-            String userId = httpRequest.getParameter("userId");
-            if (userId != null) {
-                attributes.put("userId", userId);
-                log.info("WebSocket handshake - userId: {}", userId);
-            }
-            
-            // JWT 토큰 확인 (인증 여부 판단)
+
             String token = httpRequest.getParameter("token");
             boolean isAuthenticated = false;
-            
+            String userId = null;
+
             if (token != null && !token.isEmpty()) {
                 try {
-                    // JWT 토큰 검증
                     if (jwtService.validateToken(token)) {
-                        String userIdFromToken = jwtService.getUserIdFromToken(token);
-                        
-                        // 토큰에서 추출한 userId와 파라미터의 userId가 일치하는지 확인
-                        if (userIdFromToken != null && userIdFromToken.equals(userId)) {
+                        userId = jwtService.getUserIdFromToken(token);
+                        if (userId != null) {
+                            attributes.put("userId", userId);
                             isAuthenticated = true;
                             log.info("WebSocket handshake - authenticated user: {}", userId);
-                        } else {
-                            log.warn("WebSocket handshake - token userId mismatch: {} vs {}", userIdFromToken, userId);
                         }
                     } else {
-                        log.warn("WebSocket handshake - invalid token for user: {}", userId);
+                        log.warn("WebSocket handshake - invalid token.");
                     }
                 } catch (Exception e) {
                     log.warn("WebSocket handshake - token validation failed: {}", e.getMessage());
                 }
+            } else {
+                log.warn("WebSocket handshake - token is missing.");
             }
-            
-            // 인증 여부를 세션 속성에 저장 (Rate Limiting에서 사용)
+
             attributes.put("authenticated", isAuthenticated);
-            
-            // IP 주소 저장
-            String remoteAddress = httpRequest.getRemoteAddr();
-            attributes.put("remoteAddress", remoteAddress);
-            
-            log.debug("WebSocket handshake - userId: {}, authenticated: {}, IP: {}", 
-                userId, isAuthenticated, remoteAddress);
+
+            log.debug("WebSocket handshake - userId: {}, authenticated: {}",
+                    userId, isAuthenticated);
         }
-        
-        return true; // true를 반환하면 연결 허용
+
+        return true; 
     }
 
     @Override

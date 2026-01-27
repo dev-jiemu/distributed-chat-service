@@ -10,9 +10,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "users", indexes = {
-        @Index(name = "idx_client_identifier", columnList = "clientIdentifier", unique = true),
-        @Index(name = "idx_email", columnList = "email"),  // 이메일 검색 최적화
-        @Index(name = "idx_user_type", columnList = "userType")  // 타입별 조회 최적화
+        @Index(name = "idx_email", columnList = "email"),
+        @Index(name = "idx_user_id", columnList = "userId")
 })
 public class User {
     @Id
@@ -22,19 +21,14 @@ public class User {
     @Column(nullable = false, unique = true)
     private String userId;  // user_xxxxx 형태
 
-    @Column(nullable = false, unique = true)
-    private String clientIdentifier;  // IP + UserAgent 해시
-
     @Column(nullable = false)
     private String nickname;
 
-    private String ipAddress;
+    @Column(unique = true)
+    private String email;
 
-    @Column(columnDefinition = "TEXT")
-    private String userAgent;
-
-    @Column(columnDefinition = "TEXT")
-    private String deviceInfo;  // JSON 형태로 추가 정보 저장
+    @Column
+    private String passwordHash;
 
     @CreatedDate
     private LocalDateTime createdAt;
@@ -44,32 +38,23 @@ public class User {
 
     private LocalDateTime lastLoginAt;
 
-    @Column(unique = true)
-    private String email;
-
-    @Column
-    private String passwordHash;
-
-    @Column
-    @Enumerated(EnumType.STRING)
-    private UserType userType = UserType.ANONYMOUS; // ANONYMOUS, AUTHENTICATED
-
     @Column
     private LocalDateTime emailVerifiedAt;
 
     @Column
     private boolean isAccountUpgraded = false;
+    
+    // 추가 정보 (선택사항)
+    @Column(columnDefinition = "TEXT")
+    private String deviceInfo;  // JSON 형태로 디바이스 정보 저장
 
     public User() {}
 
-    public User(Long id, String userId, String clientIdentifier, String nickname, String ipAddress, String userAgent, String deviceInfo, LocalDateTime createdAt, LocalDateTime lastActiveAt, LocalDateTime lastLoginAt) {
+    public User(Long id, String userId, String nickname, String email, LocalDateTime createdAt, LocalDateTime lastActiveAt, LocalDateTime lastLoginAt) {
         this.id = id;
         this.userId = userId;
-        this.clientIdentifier = clientIdentifier;
         this.nickname = nickname;
-        this.ipAddress = ipAddress;
-        this.userAgent = userAgent;
-        this.deviceInfo = deviceInfo;
+        this.email = email;
         this.createdAt = createdAt;
         this.lastActiveAt = lastActiveAt;
         this.lastLoginAt = lastLoginAt;
@@ -96,40 +81,8 @@ public class User {
         return userId;
     }
 
-    public UserType getUserType() {
-        return userType;
-    }
-
-    public void setUserType(UserType userType) {
-        this.userType = userType;
-    }
-
-    public LocalDateTime getEmailVerifiedAt() {
-        return emailVerifiedAt;
-    }
-
-    public void setEmailVerifiedAt(LocalDateTime emailVerifiedAt) {
-        this.emailVerifiedAt = emailVerifiedAt;
-    }
-
-    public boolean isAccountUpgraded() {
-        return isAccountUpgraded;
-    }
-
-    public void setAccountUpgraded(boolean accountUpgraded) {
-        isAccountUpgraded = accountUpgraded;
-    }
-
     public void setUserId(String userId) {
         this.userId = userId;
-    }
-
-    public String getClientIdentifier() {
-        return clientIdentifier;
-    }
-
-    public void setClientIdentifier(String clientIdentifier) {
-        this.clientIdentifier = clientIdentifier;
     }
 
     public String getNickname() {
@@ -140,28 +93,20 @@ public class User {
         this.nickname = nickname;
     }
 
-    public String getIpAddress() {
-        return ipAddress;
+    public String getEmail() {
+        return email;
     }
 
-    public void setIpAddress(String ipAddress) {
-        this.ipAddress = ipAddress;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
-    public String getUserAgent() {
-        return userAgent;
+    public String getPasswordHash() {
+        return passwordHash;
     }
 
-    public void setUserAgent(String userAgent) {
-        this.userAgent = userAgent;
-    }
-
-    public String getDeviceInfo() {
-        return deviceInfo;
-    }
-
-    public void setDeviceInfo(String deviceInfo) {
-        this.deviceInfo = deviceInfo;
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -188,32 +133,50 @@ public class User {
         this.lastLoginAt = lastLoginAt;
     }
 
-    public String getEmail() {
-        return email;
+    public LocalDateTime getEmailVerifiedAt() {
+        return emailVerifiedAt;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setEmailVerifiedAt(LocalDateTime emailVerifiedAt) {
+        this.emailVerifiedAt = emailVerifiedAt;
+    }
+
+    public boolean isAccountUpgraded() {
+        return isAccountUpgraded;
+    }
+
+    public void setAccountUpgraded(boolean accountUpgraded) {
+        isAccountUpgraded = accountUpgraded;
+    }
+
+    public String getDeviceInfo() {
+        return deviceInfo;
+    }
+
+    public void setDeviceInfo(String deviceInfo) {
+        this.deviceInfo = deviceInfo;
     }
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         User user = (User) o;
-        return isAccountUpgraded == user.isAccountUpgraded && Objects.equals(id, user.id) && Objects.equals(userId, user.userId) && Objects.equals(clientIdentifier, user.clientIdentifier) && Objects.equals(nickname, user.nickname) && Objects.equals(ipAddress, user.ipAddress) && Objects.equals(userAgent, user.userAgent) && Objects.equals(deviceInfo, user.deviceInfo) && Objects.equals(createdAt, user.createdAt) && Objects.equals(lastActiveAt, user.lastActiveAt) && Objects.equals(lastLoginAt, user.lastLoginAt) && Objects.equals(email, user.email) && Objects.equals(passwordHash, user.passwordHash) && userType == user.userType && Objects.equals(emailVerifiedAt, user.emailVerifiedAt);
+        return isAccountUpgraded == user.isAccountUpgraded && 
+               Objects.equals(id, user.id) && 
+               Objects.equals(userId, user.userId) && 
+               Objects.equals(nickname, user.nickname) && 
+               Objects.equals(email, user.email) && 
+               Objects.equals(passwordHash, user.passwordHash) && 
+               Objects.equals(createdAt, user.createdAt) && 
+               Objects.equals(lastActiveAt, user.lastActiveAt) && 
+               Objects.equals(lastLoginAt, user.lastLoginAt) && 
+               Objects.equals(emailVerifiedAt, user.emailVerifiedAt) && 
+               Objects.equals(deviceInfo, user.deviceInfo);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, userId, clientIdentifier, nickname, ipAddress, userAgent, deviceInfo, createdAt, lastActiveAt, lastLoginAt, email, passwordHash, userType, emailVerifiedAt, isAccountUpgraded);
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
+        return Objects.hash(id, userId, nickname, email, passwordHash, createdAt, lastActiveAt, lastLoginAt, emailVerifiedAt, isAccountUpgraded, deviceInfo);
     }
 
     @Override
@@ -221,17 +184,11 @@ public class User {
         return "User{" +
                 "id=" + id +
                 ", userId='" + userId + '\'' +
-                ", clientIdentifier='" + clientIdentifier + '\'' +
                 ", nickname='" + nickname + '\'' +
-                ", ipAddress='" + ipAddress + '\'' +
-                ", userAgent='" + userAgent + '\'' +
-                ", deviceInfo='" + deviceInfo + '\'' +
+                ", email='" + email + '\'' +
                 ", createdAt=" + createdAt +
                 ", lastActiveAt=" + lastActiveAt +
                 ", lastLoginAt=" + lastLoginAt +
-                ", email='" + email + '\'' +
-                ", passwordHash='" + passwordHash + '\'' +
-                ", userType=" + userType +
                 ", emailVerifiedAt=" + emailVerifiedAt +
                 ", isAccountUpgraded=" + isAccountUpgraded +
                 '}';

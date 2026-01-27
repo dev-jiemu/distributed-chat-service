@@ -16,11 +16,15 @@ public class MessageRoutingService {
     private final RabbitTemplate rabbitTemplate;
     private final SimpMessagingTemplate messagingTemplate;
     private final ConnectionService connectionService;
+    private final String serverId;
 
-    public MessageRoutingService(RabbitTemplate rabbitTemplate, SimpMessagingTemplate messagingTemplate, ConnectionService connectionService) {
+    public MessageRoutingService(RabbitTemplate rabbitTemplate, 
+                                SimpMessagingTemplate messagingTemplate, 
+                                ConnectionService connectionService) {
         this.rabbitTemplate = rabbitTemplate;
         this.messagingTemplate = messagingTemplate;
         this.connectionService = connectionService;
+        this.serverId = System.getenv().getOrDefault("HOSTNAME", "server1");
     }
 
     /**
@@ -30,11 +34,18 @@ public class MessageRoutingService {
         String receiverServer = connectionService.getUserServer(message.getReceiver());
         
         if (receiverServer != null) {
-            // 수신자가 다른 서버에 연결되어 있으면 RabbitMQ를 통해 전달
-            String routingKey = RabbitMQConfig.ROUTING_KEY_PREFIX + receiverServer;
-            rabbitTemplate.convertAndSend(RabbitMQConfig.CHAT_EXCHANGE, routingKey, message);
-            log.info("Message from {} to {} routed to server {}", 
-                    message.getSender(), message.getReceiver(), receiverServer);
+            // 같은 서버에 있으면 직접 전달 (RabbitMQ를 거치지 않음)
+            if (receiverServer.equals(serverId)) {
+                deliverMessageToLocalUser(message);
+                log.info("Message from {} to {} delivered locally on server {}", 
+                        message.getSender(), message.getReceiver(), serverId);
+            } else {
+                // 다른 서버에 연결되어 있으면 RabbitMQ를 통해 전달
+                String routingKey = RabbitMQConfig.ROUTING_KEY_PREFIX + receiverServer;
+                rabbitTemplate.convertAndSend(RabbitMQConfig.CHAT_EXCHANGE, routingKey, message);
+                log.info("Message from {} to {} routed to server {}", 
+                        message.getSender(), message.getReceiver(), receiverServer);
+            }
         } else {
             log.warn("User {} not found in any server", message.getReceiver());
         }

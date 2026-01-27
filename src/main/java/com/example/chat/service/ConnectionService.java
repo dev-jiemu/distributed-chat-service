@@ -1,6 +1,5 @@
 package com.example.chat.service;
 
-import com.example.chat.entity.User;
 import com.example.chat.model.UserConnection;
 import com.example.chat.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,7 +10,6 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -36,23 +34,19 @@ public class ConnectionService {
     private static final long CONNECTION_TTL = 30; // 30분
     
     public void saveUserConnection(String userId, String sessionId) {
-        // DB에서 사용자 확인
-        Optional<User> userOpt  = userRepository.findByUserId(userId);
-        if (userOpt .isEmpty()) {
-            log.error("user not found in db: {}", userId);
-            return;
-        }
-
-        User user = userOpt.get();
+        // Redis에 연결 정보 저장 (DB 조회 없이)
         UserConnection connection = new UserConnection(userId, sessionId, serverId, System.currentTimeMillis());
         String key = CONNECTION_KEY_PREFIX + userId;
         redisTemplate.opsForValue().set(key, connection, CONNECTION_TTL, TimeUnit.MINUTES);
 
-        // 사용자 활성 시간 업데이트
-        user.setLastActiveAt(LocalDateTime.now());
-        userRepository.save(user);
-
         log.info("User {} connected to server {} with session {}", userId, serverId, sessionId);
+        
+        // DB에 사용자가 있으면 활성 시간 업데이트 (선택사항)
+        userRepository.findByUserId(userId).ifPresent(user -> {
+            user.setLastActiveAt(LocalDateTime.now());
+            userRepository.save(user);
+            log.debug("Updated last active time for user: {}", userId);
+        });
     }
 
 

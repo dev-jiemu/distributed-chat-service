@@ -68,6 +68,8 @@ public class SecurityConfig {
                                 "/",  // 루트
                                 "/index.html",  // 메인 페이지
                                 "/chat.html",  // 채팅 페이지
+                                "/register.html", // 회원가입 페이지
+                                "/favicon.ico",  // favicon
                                 "/*.css",  // CSS 파일들
                                 "/*.js"   // JS 파일들
                         ).permitAll()

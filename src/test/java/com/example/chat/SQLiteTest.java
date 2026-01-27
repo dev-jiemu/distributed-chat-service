@@ -26,10 +26,7 @@ public class SQLiteTest {
             for (int i = 1; i <= 100; i++) {
                 User user = new User();
                 user.setUserId("test_user_" + i);
-                user.setClientIdentifier("test_client_" + i);
                 user.setNickname("TestUser" + i);
-                user.setIpAddress("192.168.1." + (i % 255));
-                user.setUserAgent("TestAgent/1.0");
                 user.setCreatedAt(LocalDateTime.now());
                 testUsers.add(user);
             }

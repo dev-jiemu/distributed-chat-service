@@ -28,7 +28,14 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             AuthenticationException authException
     ) throws IOException, ServletException {
         
-        log.error("인증되지 않은 요청: {}", authException.getMessage());
+        String requestURI = request.getRequestURI();
+        
+        // 정적 리소스나 공개 엔드포인트는 로그 레벨 낮춤
+        if (isPublicResource(requestURI)) {
+            log.debug("공개 리소스 접근 (인증 불필요): {}", requestURI);
+        } else {
+            log.warn("인증되지 않은 요청: {} - {}", requestURI, authException.getMessage());
+        }
         
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -40,5 +47,16 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
         body.put("path", request.getServletPath());
         
         objectMapper.writeValue(response.getOutputStream(), body);
+    }
+    
+    private boolean isPublicResource(String uri) {
+        return uri.endsWith(".css") || 
+               uri.endsWith(".js") || 
+               uri.endsWith(".ico") ||
+               uri.endsWith(".png") ||
+               uri.endsWith(".jpg") ||
+               uri.endsWith(".html") ||
+               uri.startsWith("/api/auth/") ||
+               uri.startsWith("/ws-chat");
     }
 }
