@@ -89,6 +89,8 @@ public class AuthController {
             }
             
             // 2. Spring Security 인증 수행
+            // 토큰 생성해서 클라이언트에게 주는거니까 구조상 유실 가능성은 낮음 ㅇㅇ
+            // 설령 유실되어서 토큰이 안맞는다고 하더라도, 다시 받으면 됨
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             user.getUserId(),  // userId로 인증
