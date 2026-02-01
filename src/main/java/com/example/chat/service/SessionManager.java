@@ -10,6 +10,7 @@ import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -99,6 +100,10 @@ public class SessionManager {
     
     public int getLocalSessionCount() {
         return localSessions.size();
+    }
+
+    public Set<String> getAllLocalUserIds() {
+        return localSessions.keySet();
     }
     
     public void refreshSession(String userId) {

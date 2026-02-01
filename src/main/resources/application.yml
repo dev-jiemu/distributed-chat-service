@@ -1,11 +1,19 @@
 # Server Configuration
 server:
   port: 8080
+  shutdown:
+    graceful-shutdown-timeout: 10s  # SIGTERM 후 최대 대기 시간
 
 # Custom Application Properties
 app:
   server-id: ${SERVER_ID:server1}
-  
+
+  # Server Heartbeat Configuration
+  heartbeat:
+    interval: 5        # 하트비트 갱신 간격 (초)
+    ttl: 15            # Redis TTL (초) — interval의 3배로 유지
+    threshold: 10      # 서버를 죽었다고 판단하는 기준 (초)
+
   # Rate Limiting Configuration (모든 사용자 동일)
   rate-limit:
     limit: 200              # 분당 최대 메시지 수
