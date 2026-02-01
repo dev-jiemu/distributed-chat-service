@@ -1,6 +1,8 @@
 # Server Configuration
 server:
   port: 8080
+  shutdown:
+    graceful-shutdown-timeout: 10s  # SIGTERM 후 최대 대기 시간
 
 # Custom Application Properties
 app:
