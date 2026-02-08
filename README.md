@@ -268,3 +268,28 @@ example
     - Graceful shutdown
 3. **클라이언트 재연결 유도** — 서버 다운 시 클라이언트가 다른 서버로 재연결할 수 있도록 처리
 
+
+---
+
+## DB 교체작업
+SQLite -> H2 로 교체
+
+사유: SQLite 는 기본적으로 데이터베이스 파일에 락을 걸어서 CRUD 작업을 하므로, 아무리 connection pool 을 조정해도 동시성 제어에서 제약사항이 많음
+
+정리 (from claude)
+```text
+- 쓰기 작업 시 데이터베이스 전체에 배타적 락(exclusive lock)이 걸립니다
+- 여러 읽기는 동시에 가능하지만, 쓰기 중에는 읽기도 차단됩니다
+- WAL(Write-Ahead Logging) 모드를 사용하면 개선되긴 하지만, 여전히 한 번에 하나의 쓰기만 가능합니다
+- Connection pool을 늘려도 실제로는 순차적으로 처리되기 때문에 의미가 없습니다
+
+H2의 장점
+H2는 동시성 관점에서 훨씬 유리합니다.
+
+- 행 수준 락(row-level locking)을 지원합니다
+- 여러 커넥션에서 동시에 다른 행에 대한 쓰기가 가능합니다
+- MVCC(Multi-Version Concurrency Control)를 지원하여 읽기와 쓰기가 서로를 차단하지 않습니다
+- 실제 프로덕션 데이터베이스(PostgreSQL, MySQL 등)와 유사한 동시성 메커니즘을 제공합니다
+
+따라서 낙관적 락(Optimistic Lock), 비관적 락(Pessimistic Lock), 트랜잭션 격리 수준 등 데이터베이스 동시성 제어 기법을 연습하시려면 H2로 전환하시는 것이 좋습니다.
+```
