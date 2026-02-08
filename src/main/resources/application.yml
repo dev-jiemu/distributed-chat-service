@@ -28,20 +28,20 @@ jwt:
 
 # Spring Configuration
 spring:
-  # SQLite Configuration
+  # H2 Configuration (In-memory for testing/development)
   datasource:
-    url: jdbc:sqlite:./chat-service.db
-    driver-class-name: org.sqlite.JDBC
+    url: jdbc:h2:mem:chatdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
     hikari:
-      maximum-pool-size: 1  # SQLite는 동시 쓰기가 제한적
+      maximum-pool-size: 10 # H2는 동시 쓰기가 가능하므로 풀 사이즈 증가
 
   # JPA Configuration
   jpa:
     hibernate:
-      ddl-auto: update
-    properties:
-      hibernate:
-        dialect: org.hibernate.community.dialect.SQLiteDialect
+      ddl-auto: update # 애플리케이션 시작 시 스키마 업데이트 (H2는 인메모리이므로 create-drop도 가능)
+    # H2는 별도의 dialect 설정이 필요 없음 (Spring Boot가 자동으로 감지)
     show-sql: true
   
   # SQL 스크립트 자동 실행
