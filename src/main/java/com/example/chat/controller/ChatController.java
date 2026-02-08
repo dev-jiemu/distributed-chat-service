@@ -3,7 +3,7 @@ package com.example.chat.controller;
 import com.example.chat.exception.RateLimitExceededException;
 import com.example.chat.model.ChatMessage;
 import com.example.chat.model.ErrorMessage;
-import com.example.chat.service.ConnectionService;
+import com.example.chat.service.MessageHistoryService;
 import com.example.chat.service.MessageRoutingService;
 import com.example.chat.service.RateLimitingService;
 import org.slf4j.Logger;
@@ -17,32 +17,31 @@ import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
-import java.util.Map;
 import java.util.UUID;
 
 @Controller
 public class ChatController {
-    
+
     private static final Logger log = LoggerFactory.getLogger(ChatController.class);
-    
+
     private final MessageRoutingService messageRoutingService;
-    private final ConnectionService connectionService;
     private final SimpMessagingTemplate messagingTemplate;
     private final RateLimitingService rateLimitingService;
+    private final MessageHistoryService messageHistoryService;
 
     @Value("${HOSTNAME:server-default}")
     private String serverId;
 
-    public ChatController(MessageRoutingService messageRoutingService, 
-                         ConnectionService connectionService,
-                         SimpMessagingTemplate messagingTemplate,
-                         RateLimitingService rateLimitingService) {
+    public ChatController(MessageRoutingService messageRoutingService,
+                          SimpMessagingTemplate messagingTemplate,
+                          RateLimitingService rateLimitingService,
+                          MessageHistoryService messageHistoryService) {
         this.messageRoutingService = messageRoutingService;
-        this.connectionService = connectionService;
         this.messagingTemplate = messagingTemplate;
         this.rateLimitingService = rateLimitingService;
+        this.messageHistoryService = messageHistoryService;
     }
-    
+
     /**
      * 채팅 메시지 전송 처리
      * Rate Limiting 적용
@@ -54,48 +53,52 @@ public class ChatController {
             throw new IllegalArgumentException("Principal cannot be null");
         }
         String senderId = principal.getName();
-        
+
         try {
             // Rate Limiting 체크 (모든 사용자 동일한 정책)
             rateLimitingService.checkRateLimit(senderId);
         } catch (RateLimitExceededException e) {
             // Rate Limit 초과 - 에러 메시지 전송
             ErrorMessage errorMessage = new ErrorMessage(
-                "RATE_LIMIT_EXCEEDED",
-                "메시지 전송 한도를 초과했습니다. 잠시 후 다시 시도해주세요.",
-                e.getRetryAfterSeconds()
+                    "RATE_LIMIT_EXCEEDED",
+                    "메시지 전송 한도를 초과했습니다. 잠시 후 다시 시도해주세요.",
+                    e.getRetryAfterSeconds()
             );
-            
+
             messagingTemplate.convertAndSendToUser(
-                senderId, 
-                "/queue/errors", 
-                errorMessage
+                    senderId,
+                    "/queue/errors",
+                    errorMessage
             );
-            
+
             log.warn("Rate limit exceeded for user: {}", senderId);
             return;  // 메시지 전송 중단
         }
         // ========================================
-        
+
         chatMessage.setSender(senderId);
         chatMessage.setSenderId(senderId);
         chatMessage.setId(UUID.randomUUID().toString());
         chatMessage.setTimestamp(LocalDateTime.now());
-        
+
         log.info("Received message from {} to {}", chatMessage.getSender(), chatMessage.getReceiver());
 
         // 수신자가 있고 자신이 아닌 경우 메시지 라우팅
         if (chatMessage.getReceiver() != null && !chatMessage.getReceiver().equals(senderId)) {
+            // 1:1 메시지 저장
+            messageHistoryService.saveDirectMessage(chatMessage);
             messageRoutingService.routeMessage(chatMessage);
         }
-        
-        // 룸 메시지인 경우 (추후 구현)
+
+        // 룸 메시지인 경우
         if (chatMessage.getRoomId() != null) {
+            // 룸 메시지 저장
+            messageHistoryService.saveRoomMessage(chatMessage);
             // TODO: 룸 멤버들에게 브로드캐스트 (next job)
             log.info("Room message for room: {}", chatMessage.getRoomId());
         }
     }
-    
+
     /**
      * 타이핑 알림
      */
@@ -109,17 +112,17 @@ public class ChatController {
         message.setSender(userId);
         message.setType(ChatMessage.MessageType.TYPING);
         message.setTimestamp(LocalDateTime.now());
-        
+
         // 수신자에게 타이핑 알림 전달
         if (message.getReceiver() != null) {
             messagingTemplate.convertAndSendToUser(
-                message.getReceiver(), 
-                "/queue/messages", 
-                message
+                    message.getReceiver(),
+                    "/queue/messages",
+                    message
             );
         }
     }
-    
+
     /**
      * 읽음 확인
      */
@@ -133,13 +136,13 @@ public class ChatController {
         message.setSender(userId);
         message.setType(ChatMessage.MessageType.READ);
         message.setTimestamp(LocalDateTime.now());
-        
+
         // 원 발신자에게 읽음 확인 전달
         if (message.getReceiver() != null) {
             messagingTemplate.convertAndSendToUser(
-                message.getReceiver(), 
-                "/queue/messages", 
-                message
+                    message.getReceiver(),
+                    "/queue/messages",
+                    message
             );
         }
     }

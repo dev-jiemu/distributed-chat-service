@@ -71,6 +71,14 @@ spring:
     username: admin
     password: admin
     virtual-host: /
+    # STOMP over WebSocket을 위한 추가 설정
+    # RabbitMQ STOMP 플러그인이 61613 포트에서 실행되어야 함
+    # 명령어: rabbitmq-plugins enable rabbitmq_stomp rabbitmq_web_stomp
+    stomp:
+      host: localhost
+      port: 61613
+      login: admin
+      passcode: admin
     
   # Jackson Configuration
   jackson:

@@ -5,13 +5,15 @@ services:
     image: rabbitmq:3-management
     container_name: chat_rabbitmq
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "5672:5672"    # AMQP 프로토콜
+      - "15672:15672"  # Management UI
+      - "61613:61613"  # STOMP 프로토콜
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: admin
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq-enabled-plugins:/etc/rabbitmq/enabled_plugins
     networks:
       - chat_network
     healthcheck: # rabbitmq 뜨기 전에 먼저 뜨면 연결에러 뜨니까 healthcheck 추가해봄
