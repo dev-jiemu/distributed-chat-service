@@ -9,3 +9,9 @@ spring:
     username: admin
     password: admin
     connection-timeout: 60000
+    # STOMP over WebSocket을 위한 추가 설정
+    stomp:
+      host: ${SPRING_RABBITMQ_HOST:rabbitmq}
+      port: 61613
+      login: admin
+      passcode: admin

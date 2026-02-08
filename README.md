@@ -293,3 +293,13 @@ H2는 동시성 관점에서 훨씬 유리합니다.
 
 따라서 낙관적 락(Optimistic Lock), 비관적 락(Pessimistic Lock), 트랜잭션 격리 수준 등 데이터베이스 동시성 제어 기법을 연습하시려면 H2로 전환하시는 것이 좋습니다.
 ```
+
+## StompBrokerRelay 사용
+
+WebSockerConfig
+- `enableSimpleBroker()` → `enableStompBrokerRelay()` 로 변경
+
+변경 이유
+- SimpleBroker의 인메모리 방식은 분산 환경에서 서버별로 브로커가 분리되는게 문제 -> 요청량이 많을수록 메모리 사용량이 올라감
+- 모든 서버가 중앙의 RabbitMQ 브로커를 공유한다면? -> StompBrokerRelay 
+- 어차피 이미 RabbitMQ 를 사용중이였으니까, STOMP 프로토콜에도 활용
