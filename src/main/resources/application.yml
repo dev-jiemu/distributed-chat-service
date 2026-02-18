@@ -20,6 +20,15 @@ app:
     burst: 100              # 버스트 허용 (한번에 보낼 수 있는 최대 개수)
     token-ttl: 300          # Redis TTL (초) - 5분
 
+  # Connection Control Configuration
+  connection:
+    max-connections-per-server: 1000      # 서버당 최대 동시 연결 수
+    rate-limit:
+      max-attempts: 10                    # IP당 윈도우 내 최대 연결 시도 횟수
+      window-seconds: 60                  # 연결 시도 카운팅 윈도우 (초)
+    idle-timeout-minutes: 10              # idle 판단 기준 시간 (분)
+    cleanup-interval-ms: 300000           # idle 세션 정리 주기 (ms, 기본 5분)
+
 # JWT Configuration
 jwt:
   secret: dGhpcy1pcy1hLXZlcnktc2VjdXJlLWp3dC1zZWNyZXQta2V5LWZvci1jaGF0LWFwcGxpY2F0aW9uLTIwMjQ=

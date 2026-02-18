@@ -6,6 +6,7 @@ import com.example.chat.model.ErrorMessage;
 import com.example.chat.service.MessageHistoryService;
 import com.example.chat.service.MessageRoutingService;
 import com.example.chat.service.RateLimitingService;
+import com.example.chat.service.SessionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +29,7 @@ public class ChatController {
     private final SimpMessagingTemplate messagingTemplate;
     private final RateLimitingService rateLimitingService;
     private final MessageHistoryService messageHistoryService;
+    private final SessionManager sessionManager;
 
     @Value("${HOSTNAME:server-default}")
     private String serverId;
@@ -35,11 +37,13 @@ public class ChatController {
     public ChatController(MessageRoutingService messageRoutingService,
                           SimpMessagingTemplate messagingTemplate,
                           RateLimitingService rateLimitingService,
-                          MessageHistoryService messageHistoryService) {
+                          MessageHistoryService messageHistoryService,
+                          SessionManager sessionManager) {
         this.messageRoutingService = messageRoutingService;
         this.messagingTemplate = messagingTemplate;
         this.rateLimitingService = rateLimitingService;
         this.messageHistoryService = messageHistoryService;
+        this.sessionManager = sessionManager;
     }
 
     /**
@@ -74,7 +78,9 @@ public class ChatController {
             log.warn("Rate limit exceeded for user: {}", senderId);
             return;  // 메시지 전송 중단
         }
-        // ========================================
+
+        // 활동 시간 갱신 - idle 세션 타임아웃 기준
+        sessionManager.updateLastActivity(senderId);
 
         chatMessage.setSender(senderId);
         chatMessage.setSenderId(senderId);
@@ -113,6 +119,9 @@ public class ChatController {
         message.setType(ChatMessage.MessageType.TYPING);
         message.setTimestamp(LocalDateTime.now());
 
+        // 활동 시간 갱신
+        sessionManager.updateLastActivity(userId);
+
         // 수신자에게 타이핑 알림 전달
         if (message.getReceiver() != null) {
             messagingTemplate.convertAndSendToUser(
@@ -125,6 +134,7 @@ public class ChatController {
 
     /**
      * 읽음 확인
+     * TODO : SSE
      */
     @MessageMapping("/chat.read")
     public void markAsRead(@Payload ChatMessage message, Principal principal) {
@@ -136,6 +146,9 @@ public class ChatController {
         message.setSender(userId);
         message.setType(ChatMessage.MessageType.READ);
         message.setTimestamp(LocalDateTime.now());
+
+        // 활동 시간 갱신
+        sessionManager.updateLastActivity(userId);
 
         // 원 발신자에게 읽음 확인 전달
         if (message.getReceiver() != null) {

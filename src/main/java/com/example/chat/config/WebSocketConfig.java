@@ -1,7 +1,9 @@
 package com.example.chat.config;
 
 import com.example.chat.interceptor.WebSocketHandshakeInterceptor;
+import com.example.chat.service.ConnectionRateLimitService;
 import com.example.chat.service.JwtService;
+import com.example.chat.service.SessionManager;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -16,6 +18,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final JwtService jwtService;
     private final UserInterceptor userInterceptor;
+    private final ConnectionRateLimitService connectionRateLimitService;
+    private final SessionManager sessionManager;
 
     @Value("${spring.rabbitmq.stomp.host:localhost}")
     private String stompHost;
@@ -29,9 +33,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Value("${spring.rabbitmq.stomp.passcode:admin}")
     private String stompPasscode;
 
-    public WebSocketConfig(JwtService jwtService, UserInterceptor userInterceptor) {
+    public WebSocketConfig(JwtService jwtService, UserInterceptor userInterceptor,
+                           ConnectionRateLimitService connectionRateLimitService,
+                           SessionManager sessionManager) {
         this.jwtService = jwtService;
         this.userInterceptor = userInterceptor;
+        this.connectionRateLimitService = connectionRateLimitService;
+        this.sessionManager = sessionManager;
     }
 
     @Override
@@ -58,7 +66,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // WebSocket 엔드포인트 등록 (SockJS 지원)
         registry.addEndpoint("/ws-chat")
                 .setAllowedOriginPatterns("*")
-                .addInterceptors(new WebSocketHandshakeInterceptor(jwtService))
+                .addInterceptors(new WebSocketHandshakeInterceptor(jwtService, connectionRateLimitService, sessionManager))
                 .withSockJS();
     }
 
