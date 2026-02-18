@@ -48,10 +48,13 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             ChatMessage chatMessage = objectMapper.readValue(payload, ChatMessage.class);
             String userId = getUserIdFromSession(session);
             chatMessage.setSenderId(userId);
-            
+
+            // 활동 시간 갱신 - idle 세션 타임아웃 기준
+            sessionManager.updateLastActivity(userId);
+
             // RabbitMQ로 메시지 발행
             messagePublisher.publishMessage(chatMessage);
-            
+
         } catch (Exception e) {
             log.error("Error handling message", e);
         }

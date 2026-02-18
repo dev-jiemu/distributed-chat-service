@@ -303,3 +303,19 @@ WebSockerConfig
 - SimpleBroker의 인메모리 방식은 분산 환경에서 서버별로 브로커가 분리되는게 문제 -> 요청량이 많을수록 메모리 사용량이 올라감
 - 모든 서버가 중앙의 RabbitMQ 브로커를 공유한다면? -> StompBrokerRelay 
 - 어차피 이미 RabbitMQ 를 사용중이였으니까, STOMP 프로토콜에도 활용
+
+
+## Connection Limit & Idle Connect 정리 
+Branch : `feature/ws-connection-limit`
+
+현재 구조의 한계점 
+- 서버 스케일링 늘리는건 문제가 안되지만, 물리적으로 연결 자체가 많아질 경우 connection이 많아진다는거고, 서버 리소스를 계속 점유한다는 문제점이 있음
+- 이에 따라 연결은 되어있지만 특정 시간이상 반응이 없는 연결은 정리하던가, 연결 자체에 제한을 주는 구조가 필요해보임(기존 limit 는 메세지를 보내는 거에 제한을 준다에 초점이 맞춰져있음)
+
+### 수정방향
+- 연결 시도 제한 추가(IP 기준)
+- 최대 동시 연결수 제한
+- Idle Connection 정리
+
+추가적으로 해야할 것
+- 읽음 상태나 알림 같은건 SSE 로 구현하는게 낫지 않을까..
